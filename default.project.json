@@ -1,0 +1,14 @@
+{
+  "name": "Axiom",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+
+      "Axiom": {
+        "$path": "src/Axiom"
+      }
+    }
+  }
+}
