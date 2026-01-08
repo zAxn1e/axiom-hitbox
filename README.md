@@ -66,7 +66,7 @@ Use **only packaged builds**, not git clone.
 - Download `.rbxm / .rbxmx`
 - Insert into Studio
 
-> 🔗 [GitHub Releases link](#)
+> 🔗 [GitHub Releases link](https://github.com/zAxn1e/Axiom-Hitbox/releases)
 
 ---
 
@@ -84,7 +84,7 @@ Supported only for:
 - debugging
 
 ---
-
+<!-- 
 ## 📁 Recommended runtime structure
 
 ````
@@ -94,7 +94,7 @@ ReplicatedStorage
     ├── Service
     ├── _docs
     └── Hitbox
-````
+```` -->
 
 ### Example require
 
@@ -107,7 +107,7 @@ local CharacterService = require(Axiom.Service.CharacterService) -- CharacterSer
 
 ---
 
-## ⚔️ Quick Start — Hitbox
+## ⚔️ Quick Start - Hitbox
 
 ```lua
 local Axiom = game.ReplicatedStorage:WaitForChild("Axiom")
