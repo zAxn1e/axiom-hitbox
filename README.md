@@ -57,7 +57,7 @@ Use **only packaged builds**, not git clone.
 - Install as Roblox package
 - Receive automatic updates
 
-> 🔗 [Creator Store link](https://create.roblox.com/store/asset/121594941080314/Axiom-Hitbox)
+> 🔗 [Creator Store link](https://create.roblox.com/store/asset/121594941080314)
 
 ---
 
@@ -66,7 +66,7 @@ Use **only packaged builds**, not git clone.
 - Download `.rbxm / .rbxmx`
 - Insert into Studio
 
-> 🔗 [GitHub Releases link](https://github.com/zAxn1e/Axiom-Hitbox/releases)
+> 🔗 [GitHub Releases link](https://github.com/zAxn1e/axiom-hitbox/releases)
 
 ---
 
