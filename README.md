@@ -312,7 +312,7 @@ All yield until ready.
 
 ## 📜 License
 
-See [LICENSE.lua](./src/Axiom/_docs/LICENSE.luau) for license information.
+See [LICENSE.lua](./LICENSE.md) for license information.
 
 ---
 
