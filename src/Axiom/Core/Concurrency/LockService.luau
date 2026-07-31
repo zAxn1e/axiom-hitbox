@@ -107,7 +107,7 @@ local function createLock(lockKey: string): KeyedLockInternal
 	function lock:Scoped(fn, timeout: number?, token: Await.CancelToken?)
 		self:Acquire(timeout, token)
 
-		local ok, result = pcall(fn)
+		local ok, result = pcall(function() return table.pack(fn()) end)
 
 		self:Release()
 
@@ -115,7 +115,7 @@ local function createLock(lockKey: string): KeyedLockInternal
 			error(result, 2)
 		end
 
-		return result
+		return table.unpack(result, 1, result.n)
 	end
 
 	-- LEAK DETECTOR

@@ -552,7 +552,10 @@ function Await.AnySignals<T...>(
 	
 	for _, sig in ipairs(signals) do
 		table.insert(tasks, function()
-			return Await.Signal(sig, timeout, token)
+			-- NOTE: Don't pass timeout to inner signals.
+			-- Await.Any handles the overall timeout.
+			-- Passing timeout here causes double-timeout errors and noisy warnings.
+			return Await.Signal(sig, nil, token)
 		end)
 	end
 	
@@ -585,12 +588,16 @@ end
 function Await.Condition(
 	predicate: () -> boolean,
 	timeout: number?,
-	interval: number?
+	interval: number?,
+	token: CancelToken?
 )
+	if token then token:ThrowIfCancelled() end
+	
 	local start = now()
 	local step = interval or 0 -- 0 = next frame
 	
 	while not predicate() do
+		if token then token:ThrowIfCancelled() end
 		if timeout and (now() - start) >= timeout then
 			timeoutError("Await.Condition", timeout)
 		end
@@ -972,9 +979,11 @@ function Await.Mutex(): Mutex
 		end
 		
 		coroutine.yield()
+		local wasTimedOutOrCancelled = finished
+		finished = true -- prevent stale timeout/cancel callbacks from spuriously resuming
 		if token then token:ThrowIfCancelled() end
 		
-		if timeout and finished then timeoutError("Mutex.Lock", timeout) end
+		if timeout and wasTimedOutOrCancelled then timeoutError("Mutex.Lock", timeout) end
 	end
 	
 	-- NOTE: timing out a waiter does NOT unlock the mutex.
@@ -1044,8 +1053,10 @@ function Await.Semaphore(maxCount: number): Semaphore
 		end
 		
 		coroutine.yield()
+		local wasTimedOutOrCancelled = finished
+		finished = true -- prevent stale timeout/cancel callbacks from spuriously resuming
 		if token then token:ThrowIfCancelled() end
-		if timeout and finished then timeoutError("Semaphore.Acquire", timeout) end
+		if timeout and wasTimedOutOrCancelled then timeoutError("Semaphore.Acquire", timeout) end
 	end
 	
 	function sem:Release()
