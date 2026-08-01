@@ -30,9 +30,11 @@ local TRANSITIONS: TransitionTable = {
 	},
 	Stopped = {
 		Idle = true,
+		Active = true,
 	},
 	Cooldown = {
 		Idle = true,
+		Active = true,
 	},
 }
 

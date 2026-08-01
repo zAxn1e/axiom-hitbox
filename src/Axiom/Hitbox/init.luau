@@ -241,7 +241,7 @@ function Hitbox:_update(baseCFrame: CFrame)
 
 			if hum then
 				self._hit[model] = true
-				self.OnHit:FireFast(model, hum, part)
+				self.OnHit:FireSafe(model, hum, part)
 			end
 		end
 	end
