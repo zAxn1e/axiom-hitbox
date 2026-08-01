@@ -1,7 +1,7 @@
 --!strict
 -- Axiom Hitbox Framework
 -- Module: Hitbox
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --// Services
 local RunService = game:GetService("RunService")
@@ -14,6 +14,7 @@ local Types = require(Axiom.Core:WaitForChild("Types"))
 
 --// Export Types
 export type HitboxPredictionMethod = Types.HitboxPredictionMethod
+export type HitboxShape = Types.HitboxShape
 export type Hitbox = Types.Hitbox
 
 --// Internal Constants
@@ -22,13 +23,6 @@ local DEFAULT_POOL_WARM = 30
 --// Class
 local Hitbox = {}
 Hitbox.__index = Hitbox
-
---// Helper Functions
-local function applyAngularPrediction(cf: CFrame, angVel: Vector3, dt: number): CFrame
-	local speed = angVel.Magnitude
-	if speed == 0 then return cf end
-	return cf * CFrame.fromAxisAngle(angVel / speed, speed * dt)
-end
 
 --// Helper Functions
 local function applyAngularPrediction(cf: CFrame, angVel: Vector3, dt: number): CFrame
@@ -61,6 +55,10 @@ local function createHitbox(): Hitbox
 	object._activeOverlap = OverlapParams.new()
 	
 	object.Size = Vector3.new(4,4,4)
+	object.Shape = "Box"
+	object.Radius = 4
+	object.HitResetInterval = nil
+	object._lastHitReset = 0
 	object.CFrame = CFrame.identity
 	object.Offset = CFrame.identity
 	object.Duration = math.huge
@@ -83,6 +81,10 @@ local function resetHitbox(self: Hitbox)
 	self:_hideVisualizer()
 	
 	self.Size = Vector3.new(4,4,4)
+	self.Shape = "Box"
+	self.Radius = 4
+	self.HitResetInterval = nil
+	self._lastHitReset = 0
 	self.CFrame = CFrame.identity
 	self.Offset = CFrame.identity
 	self.Duration = math.huge
@@ -114,7 +116,7 @@ function Hitbox.new(): Hitbox
 	return _POOL:acquire()
 end
 
-function Hitbox:SetCFrame(cf: CFrame | BasePart)
+function Hitbox:SetCFrame(cf: CFrame | BasePart | Attachment)
 	self.CFrame = cf
 end
 
@@ -131,6 +133,7 @@ function Hitbox:Start()
 	self._destroyed = false
 	
 	table.clear(self._hit :: any) 
+	self._lastHitReset = 0
 	
 	if type(self.Ignore) ~= "table" then self.Ignore = {} end
 	
@@ -228,12 +231,24 @@ function Hitbox:_update(baseCFrame: CFrame)
 	local activeOverlap = self._activeOverlap
 	if not activeOverlap then return end
 
+	-- Check HitResetInterval for continuous/channeling attacks
+	local interval = self.HitResetInterval
+	if interval and interval > 0 then
+		if self._elapsed - (self._lastHitReset or 0) >= interval then
+			self._lastHitReset = self._elapsed
+			table.clear(self._hit)
+		end
+	end
+
 	local cf = baseCFrame * (self.Offset or CFrame.identity)
-	local parts = workspace:GetPartBoundsInBox(
-		cf,
-		self.Size,
-		activeOverlap
-	)
+	local parts: {BasePart}
+
+	if self.Shape == "Sphere" then
+		local r = self.Radius or (self.Size.X / 2)
+		parts = workspace:GetPartBoundsInRadius(cf.Position, r, activeOverlap)
+	else
+		parts = workspace:GetPartBoundsInBox(cf, self.Size, activeOverlap)
+	end
 
 	for _, part in ipairs(parts) do
 		local parent = part.Parent
@@ -263,28 +278,33 @@ function Hitbox:_resolveBaseCFrame(): CFrame?
 	end
 
 	local part = self.CFrame
-	if typeof(part) == "Instance" and part:IsA("BasePart") then
-		if not part:IsDescendantOf(game) then return nil end
-		
-		local basePart = part :: BasePart
+	if typeof(part) == "Instance" then
+		if part:IsA("Attachment") then
+			local att = part :: Attachment
+			if not att:IsDescendantOf(game) then return nil end
+			return att.WorldCFrame
+		elseif part:IsA("BasePart") then
+			local basePart = part :: BasePart
+			if not basePart:IsDescendantOf(game) then return nil end
 
-		if not self.UsePrediction then return basePart.CFrame end
-		
-		local dt = (self.PredictionTime or 0) :: number
-		if dt <= 0 then return basePart.CFrame end
+			if not self.UsePrediction then return basePart.CFrame end
+			
+			local dt = (self.PredictionTime or 0) :: number
+			if dt <= 0 then return basePart.CFrame end
 
-		local method = self.PredictionMethod or "Linear"
-		local cf = basePart.CFrame
+			local method = self.PredictionMethod or "Linear"
+			local cf = basePart.CFrame
 
-		if method == "Linear" or method == "LinearAngular" then
-			cf = cf + basePart.AssemblyLinearVelocity * dt
+			if method == "Linear" or method == "LinearAngular" then
+				cf = cf + basePart.AssemblyLinearVelocity * dt
+			end
+
+			if method == "Angular" or method == "LinearAngular" then
+				cf = applyAngularPrediction(cf, basePart.AssemblyAngularVelocity, dt)
+			end
+
+			return cf
 		end
-
-		if method == "Angular" or method == "LinearAngular" then
-			cf = applyAngularPrediction(cf, basePart.AssemblyAngularVelocity, dt)
-		end
-
-		return cf
 	end
 
 	return CFrame.identity
@@ -313,7 +333,15 @@ end
 function Hitbox:_updateVisualizer(baseCFrame: CFrame)
 	if not self._visualizerPart or not self.Visualizer then return end
 
-	self._visualizerPart.Size = self.Size
+	if self.Shape == "Sphere" then
+		local r = self.Radius or (self.Size.X / 2)
+		self._visualizerPart.Shape = Enum.PartType.Ball
+		self._visualizerPart.Size = Vector3.new(r * 2, r * 2, r * 2)
+	else
+		self._visualizerPart.Shape = Enum.PartType.Block
+		self._visualizerPart.Size = self.Size
+	end
+
 	self._visualizerPart.CFrame = baseCFrame * self.Offset
 end
 

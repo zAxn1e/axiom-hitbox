@@ -11,6 +11,7 @@ local Types = {}
 --// ENUMS & HELPERS
 export type HitboxState = "Idle" | "Active" | "Stopped" | "Cooldown"
 export type HitboxPredictionMethod = "Linear" | "Angular" | "LinearAngular"
+export type HitboxShape = "Box" | "Sphere"
 
 --// STATE MACHINE
 export type State = "Idle" | "Active" | "Stopped" | "Cooldown"
@@ -27,7 +28,10 @@ export type StateMachine = {
 export type Hitbox = {
 	-- Properties
 	Size: Vector3,
-	CFrame: BasePart | CFrame,
+	Shape: HitboxShape,
+	Radius: number,
+	HitResetInterval: number?,
+	CFrame: BasePart | Attachment | CFrame,
 	Offset: CFrame,
 	Duration: number,
 	Ignore: {Instance},
@@ -55,7 +59,7 @@ export type Hitbox = {
 	Start: (self: Hitbox) -> (),
 	Stop: (self: Hitbox) -> (),
 	Destroy: (self: Hitbox) -> (),
-	SetCFrame: (self: Hitbox, cf: CFrame | BasePart) -> (),
+	SetCFrame: (self: Hitbox, cf: CFrame | BasePart | Attachment) -> (),
 	GetPoolStats: () -> {available: number, inUse: number},
 
 	-- Internal / Private
