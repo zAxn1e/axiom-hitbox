@@ -30,15 +30,11 @@ local function applyAngularPrediction(cf: CFrame, angVel: Vector3, dt: number): 
 	return cf * CFrame.fromAxisAngle(angVel / speed, speed * dt)
 end
 
-local function copyOverlapParams(src: OverlapParams): OverlapParams
-	local o = OverlapParams.new()
-	o.FilterType = src.FilterType
-	o.CollisionGroup = src.CollisionGroup
-	o.RespectCanCollide = src.RespectCanCollide
-	o.FilterDescendantsInstances = src.FilterDescendantsInstances
-	o.MaxParts = src.MaxParts
-	o.Tolerance = src.Tolerance 
-	return o
+--// Helper Functions
+local function applyAngularPrediction(cf: CFrame, angVel: Vector3, dt: number): CFrame
+	local speed = angVel.Magnitude
+	if speed == 0 then return cf end
+	return cf * CFrame.fromAxisAngle(angVel / speed, speed * dt)
 end
 
 --// Factory
@@ -62,7 +58,7 @@ local function createHitbox(): Hitbox
 	object._visualizerPart = nil
 	object._elapsed = 0
 	object._destroyed = false
-	object._activeOverlap = nil
+	object._activeOverlap = OverlapParams.new()
 	
 	object.Size = Vector3.new(4,4,4)
 	object.CFrame = CFrame.identity
@@ -92,7 +88,6 @@ local function resetHitbox(self: Hitbox)
 	self.Duration = math.huge
 	self.Visualizer = false
 	self.OverlapParams = nil
-	self._activeOverlap = nil
 	self._elapsed = 0
 	
 	self.UsePrediction = false
@@ -140,12 +135,19 @@ function Hitbox:Start()
 	if type(self.Ignore) ~= "table" then self.Ignore = {} end
 	
 	local sourceParams = self.OverlapParams or self._defaultOverlap
-	local runtimeOverlap = copyOverlapParams(sourceParams)
-	
+	local activeOverlap = self._activeOverlap or OverlapParams.new()
+	activeOverlap.FilterType = sourceParams.FilterType
+	activeOverlap.CollisionGroup = sourceParams.CollisionGroup
+	activeOverlap.RespectCanCollide = sourceParams.RespectCanCollide
+	activeOverlap.MaxParts = sourceParams.MaxParts
+	activeOverlap.Tolerance = sourceParams.Tolerance
+
 	if not self.OverlapParams then
-		runtimeOverlap.FilterDescendantsInstances = self.Ignore
+		activeOverlap.FilterDescendantsInstances = self.Ignore
+	else
+		activeOverlap.FilterDescendantsInstances = sourceParams.FilterDescendantsInstances
 	end
-	self._activeOverlap = runtimeOverlap
+	self._activeOverlap = activeOverlap
 
 	self._elapsed = 0
 	self.OnStart:FireSafe(self)
@@ -194,7 +196,10 @@ function Hitbox:_cleanup()
 	self.OnStart:DisconnectAllFast()
 	self.OnStop:DisconnectAllFast()
 
-	self:_hideVisualizer()
+	if self._visualizerPart then
+		self._visualizerPart:Destroy()
+		self._visualizerPart = nil :: any
+	end
 end
 
 function Hitbox:Destroy()
@@ -231,6 +236,11 @@ function Hitbox:_update(baseCFrame: CFrame)
 	)
 
 	for _, part in ipairs(parts) do
+		local parent = part.Parent
+		if parent and self._hit[parent] then
+			continue
+		end
+
 		local model = part:FindFirstAncestorOfClass("Model")
 		if model and not self._hit[model] then
 			local hum = self._humCache[model]
@@ -282,24 +292,26 @@ end
 
 --// Debug visualization
 function Hitbox:_ensureVisualizer()
-	if not self.Visualizer or self._visualizerPart then return end
+	if not self.Visualizer then return end
 
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Transparency = 0.7
-	p.Color = Color3.fromRGB(255,60,60)
-	p.Material = Enum.Material.Neon
-	p.Parent = workspace
-	
-	self._visualizerPart = p
+	if not self._visualizerPart then
+		local p = Instance.new("Part")
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Transparency = 0.7
+		p.Color = Color3.fromRGB(255,60,60)
+		p.Material = Enum.Material.Neon
+		self._visualizerPart = p
+	end
+
+	self._visualizerPart.Parent = workspace
 end
 
 function Hitbox:_updateVisualizer(baseCFrame: CFrame)
-	if not self._visualizerPart then return end
+	if not self._visualizerPart or not self.Visualizer then return end
 
 	self._visualizerPart.Size = self.Size
 	self._visualizerPart.CFrame = baseCFrame * self.Offset
@@ -307,8 +319,7 @@ end
 
 function Hitbox:_hideVisualizer()
 	if self._visualizerPart then
-		self._visualizerPart:Destroy()
-		self._visualizerPart = nil :: any
+		self._visualizerPart.Parent = nil
 	end
 end
 

@@ -52,15 +52,21 @@ function TimerScheduler:_EnsureRunning()
 		if not self.Enabled then return end
 
 		self._accumulator += dt
-		if self._accumulator < self.Step then
-			return
+		local maxSteps = 4
+		local steps = 0
+		local now = os.clock()
+
+		while self._accumulator >= self.Step and steps < maxSteps do
+			self._accumulator -= self.Step
+			steps += 1
+
+			for timer in pairs(self._active) do
+				timer:_Tick(now)
+			end
 		end
 
-		self._accumulator -= self.Step
-
-		local now = os.clock()
-		for timer in pairs(self._active) do
-			timer:_Tick(now)
+		if steps >= maxSteps then
+			self._accumulator = 0 -- prevent runaway accumulator after heavy lag
 		end
 	end)
 end

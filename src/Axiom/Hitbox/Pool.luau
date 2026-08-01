@@ -18,6 +18,7 @@ type PrivatePool = {
 	-- Properties
 	_available: {any},
 	_inUse: {[any]: boolean},
+	_inUseCount: number,
 	_create: () -> any,
 	_reset: ((any) -> ())?,
 	_lastUseTime: number,
@@ -45,6 +46,7 @@ function Pool.new<T>(createFn: () -> T, resetFn: (T) -> ()): Pool<T>
 	local self = {
 		_available = {},
 		_inUse = {},
+		_inUseCount = 0,
 
 		_create = createFn,
 		_reset = resetFn,
@@ -81,6 +83,7 @@ function Pool:acquire()
 	end
 
 	self._inUse[obj] = true
+	self._inUseCount += 1
 	return obj
 end
 
@@ -90,6 +93,7 @@ function Pool:release(obj: any)
 	if not self._inUse[obj] then return end
 
 	self._inUse[obj] = nil
+	self._inUseCount = math.max(0, self._inUseCount - 1)
 	if self._reset then
 		self._reset(obj)
 	end
@@ -103,7 +107,7 @@ function Pool:_startAdaptiveLoop()
 	RunService.Heartbeat:Connect(function()
 		local now = os.clock()
 
-		if next(self._inUse) then return end
+		if self._inUseCount > 0 then return end
 		if now - self._lastUseTime < IDLE_TIME then return end
 		if now - self._lastShrinkTime < SHRINK_INTERVAL then return end
 
@@ -119,14 +123,9 @@ end
 function Pool:stats()
 	local self = self :: PrivatePool
 
-	local inUseCount = 0
-	for _ in pairs(self._inUse) do 
-		inUseCount += 1 
-	end
-
 	return {
 		available = #self._available,
-		inUse = inUseCount,
+		inUse = self._inUseCount,
 	}
 end
 
