@@ -6,7 +6,7 @@
 	Name: Axiom Hitbox
 	Author: Iv_0x
 	
-	Version: 1.3.0
+	Version: 1.4.0
 	Stability: Stable
 	
 	Description:

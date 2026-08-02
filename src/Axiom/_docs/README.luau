@@ -5,16 +5,16 @@
 	
 	Author: Iv_0x
 	
-	Core Version: 1.3.0
-	Docs Version: 1.3.0
+	Core Version: 1.4.0
+	Docs Version: 1.4.0
 	Docs Status: Up-to-date
 	
 	Compatibility:
-	- Axiom Hitbox >= 1.3.0
-	- Axiom Core >= 1.3.0
+	- Axiom Hitbox >= 1.4.0
+	- Axiom Core >= 1.4.0
 	- Roblox Luau runtime (!strict mode supported)
 	
-	Last Updated: 2026-01-06
+	Last Updated: 2026-08-05
 	
 	====================================
 	
@@ -33,10 +33,11 @@
 	and long-running Roblox servers.
 	
 	The framework focuses on:
-	- Spatial detection (geometry + time)
-	- Velocity Prediction (New in 1.3.0)
+	- Spatial detection (Box & Sphere geometry + time)
+	- Continuous / Channeling hit intervals
+	- Velocity Prediction (Linear & Angular)
 	- A clear lifecycle (Start / Stop / Destroy)
-	- Automatic pooling with adaptive shrinking
+	- Automatic pooling with O(1) tracking & adaptive shrinking
 	- Zero coupling with combat logic
 	
 	----------------------------------------------------
@@ -64,7 +65,7 @@
 		
 		local hb = Hitbox.new()
 		hb.Size = Vector3.new(6,6,6)
-		-- Supports BasePart (dynamic) or CFrame (static)
+		-- Supports BasePart, Attachment (dynamic), or CFrame (static)
 		hb:SetCFrame(character.HumanoidRootPart) 
 		hb.Duration = 0.2
 		hb.Ignore = { character }
@@ -106,7 +107,7 @@
 		Fires every Heartbeat while active.
 		
 	OnHit(model, humanoid, part)
-		Fires once per humanoid per activation.
+		Fires once per humanoid per activation (or per HitResetInterval).
 		
 	OnStop(hitbox)
 		Fires when the hitbox stops.
@@ -116,11 +117,21 @@
 	----------------------------------------------------
 
 	Size : Vector3
-		Size of the hitbox volume.
+		Size of the hitbox volume (default Vector3.new(4,4,4)).
 		
-	CFrame : CFrame | BasePart
+	Shape : "Box" | "Sphere" (New in v1.4.0)
+		Spatial query type. Default is "Box" (GetPartBoundsInBox).
+		"Sphere" uses GetPartBoundsInRadius.
+		
+	Radius : number (New in v1.4.0)
+		Radius used when Shape = "Sphere" (default 4).
+		
+	HitResetInterval : number? (New in v1.4.0)
+		Interval in seconds to clear hit memory for continuous/channeling attacks.
+		
+	CFrame : CFrame | BasePart | Attachment
 		World-space position/origin of the hitbox.
-		If a BasePart is assigned, Hitbox will track it.
+		BasePart and Attachment automatically track transform in real-time.
 		
 	Offset : CFrame (optional)
 		Local offset applied after the base CFrame.
