@@ -117,10 +117,12 @@ function Hitbox.new(): Hitbox
 end
 
 function Hitbox:SetCFrame(cf: CFrame | BasePart | Attachment | Vector3)
+	local self: Hitbox = self :: any
 	self.CFrame = cf
 end
 
 function Hitbox:Start()
+	local self: Hitbox = self :: any
 	if self._destroyed then
 		warn("Attempt to use Hitbox after Destroy()")
 		return
@@ -177,6 +179,7 @@ function Hitbox:Start()
 end
 
 function Hitbox:Stop()
+	local self: Hitbox = self :: any
 	if not self.StateMachine:set("Stopped") then return end
 
 	if self._conn then
@@ -189,6 +192,7 @@ function Hitbox:Stop()
 end
 
 function Hitbox:_cleanup()
+	local self: Hitbox = self :: any
 	if self._conn then
 		self._conn:Disconnect()
 		self._conn = nil :: any
@@ -206,6 +210,7 @@ function Hitbox:_cleanup()
 end
 
 function Hitbox:Destroy()
+	local self: Hitbox = self :: any
 	if self._destroyed then return end
 	self._destroyed = true
 	self:_cleanup()
@@ -215,36 +220,43 @@ end
 
 --// State Queries
 function Hitbox:GetState(): string
+	local self: Hitbox = self :: any
 	return self.StateMachine.current
 end
 
 function Hitbox:Is(state: string): boolean
+	local self: Hitbox = self :: any
 	return self.StateMachine:is(state)
 end
 
 function Hitbox:IsActive(): boolean
+	local self: Hitbox = self :: any
 	return self.StateMachine:is("Active")
 end
 
 --// Internals
 function Hitbox:_update(baseCFrame: CFrame)
+	local self: Hitbox = self :: any
 	local activeOverlap = self._activeOverlap
 	if not activeOverlap then return end
 
 	-- Check HitResetInterval for continuous/channeling attacks
 	local interval = self.HitResetInterval
 	if interval and interval > 0 then
-		if self._elapsed - (self._lastHitReset or 0) >= interval then
+		local lastReset = self._lastHitReset or 0
+		if self._elapsed - lastReset >= interval then
 			self._lastHitReset = self._elapsed
 			table.clear(self._hit)
 		end
 	end
 
-	local cf = baseCFrame * (self.Offset or CFrame.identity)
+	local offset = self.Offset or CFrame.identity
+	local cf: CFrame = baseCFrame * offset
 	local parts: {BasePart}
 
 	if self.Shape == "Sphere" then
-		local r = self.Radius or (self.Size.X / 2)
+		local sizeX = self.Size.X
+		local r: number = self.Radius or (sizeX * 0.5)
 		parts = workspace:GetPartBoundsInRadius(cf.Position, r, activeOverlap)
 	else
 		parts = workspace:GetPartBoundsInBox(cf, self.Size, activeOverlap)
@@ -273,6 +285,7 @@ function Hitbox:_update(baseCFrame: CFrame)
 end
 
 function Hitbox:_resolveBaseCFrame(): CFrame?
+	local self: Hitbox = self :: any
 	if typeof(self.CFrame) == "CFrame" then
 		return self.CFrame :: CFrame
 	elseif typeof(self.CFrame) == "Vector3" then
@@ -314,6 +327,7 @@ end
 
 --// Debug visualization
 function Hitbox:_ensureVisualizer()
+	local self: Hitbox = self :: any
 	if not self.Visualizer then return end
 
 	if not self._visualizerPart then
@@ -333,10 +347,12 @@ function Hitbox:_ensureVisualizer()
 end
 
 function Hitbox:_updateVisualizer(baseCFrame: CFrame)
+	local self: Hitbox = self :: any
 	if not self._visualizerPart or not self.Visualizer then return end
 
 	if self.Shape == "Sphere" then
-		local r = self.Radius or (self.Size.X / 2)
+		local sizeX = self.Size.X
+		local r: number = self.Radius or (sizeX * 0.5)
 		self._visualizerPart.Shape = Enum.PartType.Ball
 		self._visualizerPart.Size = Vector3.new(r * 2, r * 2, r * 2)
 	else
@@ -344,10 +360,12 @@ function Hitbox:_updateVisualizer(baseCFrame: CFrame)
 		self._visualizerPart.Size = self.Size
 	end
 
-	self._visualizerPart.CFrame = baseCFrame * self.Offset
+	local offset = self.Offset or CFrame.identity
+	self._visualizerPart.CFrame = baseCFrame * offset
 end
 
 function Hitbox:_hideVisualizer()
+	local self: Hitbox = self :: any
 	if self._visualizerPart then
 		self._visualizerPart.Parent = nil
 	end
