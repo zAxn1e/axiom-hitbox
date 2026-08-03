@@ -543,11 +543,11 @@ end
 -- ====================================
 
 --// Await.AnySignals
-function Await.AnySignals<T...>(
-	signals: { AwaitableSignal<T...> },
+function Await.AnySignals(
+	signals: { AwaitableSignal<any> },
 	timeout: number?,
 	token: CancelToken?
-): T...
+): ...any
 	local tasks: { AnyTask } = {}
 	
 	for _, sig in ipairs(signals) do

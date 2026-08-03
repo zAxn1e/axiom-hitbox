@@ -27,8 +27,8 @@ Hitbox.__index = Hitbox
 --// Helper Functions
 local function applyAngularPrediction(cf: CFrame, angVel: Vector3, dt: number): CFrame
 	local speed = angVel.Magnitude
-	if speed == 0 then return cf end
-	return cf * CFrame.fromAxisAngle(angVel / speed, speed * dt)
+	if speed <= 1e-5 then return cf end
+	return cf * CFrame.fromAxisAngle(angVel.Unit, speed * dt)
 end
 
 --// Factory
@@ -298,7 +298,7 @@ function Hitbox:_resolveBaseCFrame(): CFrame?
 			local cf = basePart.CFrame
 
 			if method == "Linear" or method == "LinearAngular" then
-				cf = cf + basePart.AssemblyLinearVelocity * dt
+				cf = cf + (basePart.AssemblyLinearVelocity * dt)
 			end
 
 			if method == "Angular" or method == "LinearAngular" then
