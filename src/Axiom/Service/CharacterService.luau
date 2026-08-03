@@ -66,7 +66,8 @@
 --]]
 
 local Players = game:GetService("Players")
-local Player = Players.LocalPlayer :: Player
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer :: Player?
 
 local Axiom = script.Parent.Parent
 local Signal = require(Axiom.Core:WaitForChild("Signal"))
@@ -116,7 +117,7 @@ CharacterService.CharacterRemoving = Signal.new()
 CharacterService._initialized = false
 
 function CharacterService:_Init()
-	if self._initialized then
+	if self._initialized or not RunService:IsClient() or not Player then
 		return
 	end
 	self._initialized = true

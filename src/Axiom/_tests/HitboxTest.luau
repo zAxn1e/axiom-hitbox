@@ -112,6 +112,18 @@ function HitboxTest.RunAllTests()
 		hb:Destroy()
 	end
 
+	-- ----------------------------------------------------
+	-- TEST 6: Vector3 CFrame Setting & Auto-Conversion
+	-- ----------------------------------------------------
+	do
+		local hb = Hitbox.new()
+		local pos = Vector3.new(10, 20, 30)
+		hb:SetCFrame(pos)
+
+		assertTest("SetCFrame accepts Vector3 position", hb.CFrame == pos)
+		hb:Destroy()
+	end
+
 	print("========================================")
 	print(`📊 Test Results: {passed} Passed | {failed} Failed`)
 	print("========================================")

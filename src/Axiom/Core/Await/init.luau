@@ -118,7 +118,7 @@ export type CancelToken = CancelTokenInternal
 -- TryResult
 -- Result-based error boundary used by Await.Try.
 -- This avoids tuple-based error signaling which is not type-safe in Luau.
-type TryResult = { success: true, values: {any} } | { success: false, error: any }
+export type TryResult = { success: true, values: {any} } | { success: false, error: any }
 
 -- AnyTask
 -- A task that may return values.
@@ -696,7 +696,7 @@ end
 --// Await.Try
 -- Executes a function inside a protected call and returns a Result object.
 -- This avoids tuple-based error handling which is not type-safe in Luau.
-function Await.Try(fn): TryResult
+function Await.Try(fn: () -> ...any): TryResult
 	local packed: {any} = { pcall(fn) }
 	local ok = table.remove(packed, 1)
 	

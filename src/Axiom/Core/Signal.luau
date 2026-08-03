@@ -46,7 +46,7 @@ function Signal.new<T...>(): Signal<T...>
 	}, Signal) :: any
 end
 
-function Signal:Connect(fn)
+function Signal:Connect(fn: AnyHandler): Connection
 	local internal = (self :: any) :: SignalInternal
 	if internal._destroyed then
 		warn("[Signal] Attempt to connect to a destroyed signal")
@@ -72,7 +72,7 @@ function Signal:Connect(fn)
 	}
 end
 
-function Signal:Once(fn)
+function Signal:Once(fn: AnyHandler): Connection
 	local disconnected = false
 	local conn: Connection
 

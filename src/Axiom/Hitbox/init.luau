@@ -116,7 +116,7 @@ function Hitbox.new(): Hitbox
 	return _POOL:acquire()
 end
 
-function Hitbox:SetCFrame(cf: CFrame | BasePart | Attachment)
+function Hitbox:SetCFrame(cf: CFrame | BasePart | Attachment | Vector3)
 	self.CFrame = cf
 end
 
@@ -275,6 +275,8 @@ end
 function Hitbox:_resolveBaseCFrame(): CFrame?
 	if typeof(self.CFrame) == "CFrame" then
 		return self.CFrame :: CFrame
+	elseif typeof(self.CFrame) == "Vector3" then
+		return CFrame.new(self.CFrame :: Vector3)
 	end
 
 	local part = self.CFrame
