@@ -181,7 +181,7 @@ local function disconnectConnection(conn: any)
 	elseif type(conn) == "table" and type((conn :: any).Disconnect) == "function" then
 		(conn :: any):Disconnect()
 	elseif typeof(conn) == "Instance" then
-		conn:Destroy()
+		(conn :: any):Destroy()
 	end
 end
 
