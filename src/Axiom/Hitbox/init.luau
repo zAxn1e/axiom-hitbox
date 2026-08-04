@@ -330,8 +330,7 @@ function Hitbox:_ensureVisualizer()
 	local self: Hitbox = self :: any
 	if not self.Visualizer then return end
 
-	local p = self._visualizerPart
-	if not p then
+	if not self._visualizerPart then
 		local newPart = Instance.new("Part")
 		newPart.Anchored = true
 		newPart.CanCollide = false
@@ -342,16 +341,16 @@ function Hitbox:_ensureVisualizer()
 		newPart.Color = Color3.fromRGB(255,60,60)
 		newPart.Material = Enum.Material.Neon
 		self._visualizerPart = newPart
-		p = newPart
 	end
 
+	local p: Part = self._visualizerPart :: Part
 	p.Parent = workspace
 end
 
 function Hitbox:_updateVisualizer(baseCFrame: CFrame)
 	local self: Hitbox = self :: any
-	local p = self._visualizerPart
-	if not p or not self.Visualizer then return end
+	if not self._visualizerPart or not self.Visualizer then return end
+	local p: Part = self._visualizerPart :: Part
 
 	if self.Shape == "Sphere" then
 		local sizeX = self.Size.X
@@ -369,9 +368,8 @@ end
 
 function Hitbox:_hideVisualizer()
 	local self: Hitbox = self :: any
-	local p = self._visualizerPart
-	if p then
-		p.Parent = nil
+	if self._visualizerPart then
+		(self._visualizerPart :: Part).Parent = nil
 	end
 end
 
