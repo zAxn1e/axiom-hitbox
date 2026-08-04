@@ -224,9 +224,9 @@ function Hitbox:GetState(): string
 	return self.StateMachine.current
 end
 
-function Hitbox:Is(state: string): boolean
+function Hitbox:Is(state: string | Types.HitboxState): boolean
 	local self: Hitbox = self :: any
-	return self.StateMachine:is(state)
+	return self.StateMachine:is(state :: Types.HitboxState)
 end
 
 function Hitbox:IsActive(): boolean
@@ -257,18 +257,18 @@ function Hitbox:_update(baseCFrame: CFrame)
 	if self.Shape == "Sphere" then
 		local sizeX = self.Size.X
 		local r: number = self.Radius or (sizeX * 0.5)
-		parts = workspace:GetPartBoundsInRadius(cf.Position, r, activeOverlap)
+		parts = (workspace:GetPartBoundsInRadius(cf.Position, r, activeOverlap) :: any) :: {BasePart}
 	else
-		parts = workspace:GetPartBoundsInBox(cf, self.Size, activeOverlap)
+		parts = (workspace:GetPartBoundsInBox(cf, self.Size, activeOverlap) :: any) :: {BasePart}
 	end
 
-	for _, part in ipairs(parts) do
-		local parent = part.Parent
+	for _, part: BasePart in ipairs(parts) do
+		local parent: Instance? = part.Parent
 		if parent and self._hit[parent] then
 			continue
 		end
 
-		local model = part:FindFirstAncestorOfClass("Model")
+		local model: Model? = part:FindFirstAncestorOfClass("Model")
 		if model and not self._hit[model] then
 			local hum = self._humCache[model]
 			if not hum then
@@ -330,44 +330,48 @@ function Hitbox:_ensureVisualizer()
 	local self: Hitbox = self :: any
 	if not self.Visualizer then return end
 
-	if not self._visualizerPart then
-		local p = Instance.new("Part")
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.CastShadow = false
-		p.Transparency = 0.7
-		p.Color = Color3.fromRGB(255,60,60)
-		p.Material = Enum.Material.Neon
-		self._visualizerPart = p
+	local p = self._visualizerPart
+	if not p then
+		local newPart = Instance.new("Part")
+		newPart.Anchored = true
+		newPart.CanCollide = false
+		newPart.CanQuery = false
+		newPart.CanTouch = false
+		newPart.CastShadow = false
+		newPart.Transparency = 0.7
+		newPart.Color = Color3.fromRGB(255,60,60)
+		newPart.Material = Enum.Material.Neon
+		self._visualizerPart = newPart
+		p = newPart
 	end
 
-	self._visualizerPart.Parent = workspace
+	p.Parent = workspace
 end
 
 function Hitbox:_updateVisualizer(baseCFrame: CFrame)
 	local self: Hitbox = self :: any
-	if not self._visualizerPart or not self.Visualizer then return end
+	local p = self._visualizerPart
+	if not p or not self.Visualizer then return end
 
 	if self.Shape == "Sphere" then
 		local sizeX = self.Size.X
 		local r: number = self.Radius or (sizeX * 0.5)
-		self._visualizerPart.Shape = Enum.PartType.Ball
-		self._visualizerPart.Size = Vector3.new(r * 2, r * 2, r * 2)
+		p.Shape = Enum.PartType.Ball
+		p.Size = Vector3.new(r * 2, r * 2, r * 2)
 	else
-		self._visualizerPart.Shape = Enum.PartType.Block
-		self._visualizerPart.Size = self.Size
+		p.Shape = Enum.PartType.Block
+		p.Size = self.Size
 	end
 
 	local offset = self.Offset or CFrame.identity
-	self._visualizerPart.CFrame = baseCFrame * offset
+	p.CFrame = baseCFrame * offset
 end
 
 function Hitbox:_hideVisualizer()
 	local self: Hitbox = self :: any
-	if self._visualizerPart then
-		self._visualizerPart.Parent = nil
+	local p = self._visualizerPart
+	if p then
+		p.Parent = nil
 	end
 end
 
