@@ -79,7 +79,7 @@ function HitboxTest.RunAllTests()
 	-- ----------------------------------------------------
 	do
 		local initialStats = Hitbox.GetPoolStats()
-		local activeHitboxes = {}
+		local activeHitboxes: {Hitbox.Hitbox} = {}
 
 		for i = 1, 50 do
 			local hb = Hitbox.new()
@@ -91,7 +91,7 @@ function HitboxTest.RunAllTests()
 		local activeStats = Hitbox.GetPoolStats()
 		assertTest("Pool acquired 50 hitboxes", activeStats.inUse >= 50)
 
-		for _, hb in ipairs(activeHitboxes) do
+		for _, hb: Hitbox.Hitbox in ipairs(activeHitboxes) do
 			hb:Destroy()
 		end
 
