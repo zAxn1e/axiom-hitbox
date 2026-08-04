@@ -170,18 +170,20 @@ local function safeResume(thread: thread)
 	end
 end
 
+type DisconnectableTable = { Disconnect: (self: any) -> () }
+
 -- Unified cleanup handler for connections, functions, or instances
-local function disconnectConnection(conn: any)
+local function disconnectConnection(conn: unknown)
 	if not conn then return end
 	
 	if typeof(conn) == "RBXScriptConnection" then
 		(conn :: RBXScriptConnection):Disconnect()
 	elseif type(conn) == "function" then
-		(conn :: any)()
+		(conn :: () -> ())()
 	elseif type(conn) == "table" and type((conn :: any).Disconnect) == "function" then
-		(conn :: any):Disconnect()
+		(conn :: DisconnectableTable):Disconnect()
 	elseif typeof(conn) == "Instance" then
-		(conn :: any):Destroy()
+		(conn :: Instance):Destroy()
 	end
 end
 
