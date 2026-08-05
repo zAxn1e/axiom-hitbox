@@ -140,6 +140,11 @@ function CharacterService:_Bind(char: Model)
 	local humanoid = char:WaitForChild("Humanoid") :: Humanoid
 	local animator = humanoid:WaitForChild("Animator") :: Animator
 
+	-- Guard against fast respawn: character may have been destroyed while yielding
+	if not char:IsDescendantOf(game) then
+		return
+	end
+
 	self.Character = char
 	self.Root = root
 	self.Humanoid = humanoid
