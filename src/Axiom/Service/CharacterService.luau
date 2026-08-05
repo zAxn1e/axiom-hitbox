@@ -117,20 +117,21 @@ CharacterService.CharacterRemoving = Signal.new()
 CharacterService._initialized = false
 
 function CharacterService:_Init()
-	if self._initialized or not RunService:IsClient() or not Player then
+	local localPlayer = Player
+	if self._initialized or not RunService:IsClient() or not localPlayer then
 		return
 	end
 	self._initialized = true
 
-	Player.CharacterAdded:Connect(function(char)
+	localPlayer.CharacterAdded:Connect(function(char)
 		self:_Bind(char)
 	end)
 
-	Player.CharacterRemoving:Connect(function()
+	localPlayer.CharacterRemoving:Connect(function()
 		self:_Unbind()
 	end)
 
-	local currentCharacter = Player.Character
+	local currentCharacter = localPlayer.Character
 	if currentCharacter then
 		self:_Bind(currentCharacter)
 	end
