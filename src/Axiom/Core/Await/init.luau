@@ -2,7 +2,7 @@
 -- Axiom Core
 -- Module: Await
 -- Purpose: Lightweight coroutine-based synchronization primitives for Roblox
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --[[
 	Axiom Await Core Library

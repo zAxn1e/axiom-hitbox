@@ -2,7 +2,7 @@
 -- Axiom Core
 -- Module: Scheduler (Timer)
 -- Purpose: Centralized timer update loop
--- Version: 1.3.0
+-- Version: 1.4.0
 
 local Core = script.Parent
 local Types = require(Core:WaitForChild("Types"))

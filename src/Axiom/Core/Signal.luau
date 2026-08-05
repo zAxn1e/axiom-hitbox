@@ -2,7 +2,7 @@
 -- Axiom Core
 -- Module: Signal
 -- Purpose: Lightweight internal event system
--- Version: 1.3.0
+-- Version: 1.4.0
 
 local Signal = {}
 Signal.__index = Signal

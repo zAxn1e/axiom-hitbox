@@ -1,7 +1,7 @@
 --!strict
 -- Axiom Core
 -- Module: Pool
--- Version: 1.3.0
+-- Version: 1.4.0
 
 local RunService = game:GetService("RunService")
 

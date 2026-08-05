@@ -3,7 +3,7 @@
 -- Axiom Core
 -- Module: CharacterService
 -- Purpose: Managed, type-safe access to LocalPlayer character lifecycle
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --[[
 	Axiom Character Service
