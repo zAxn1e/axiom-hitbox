@@ -29,7 +29,7 @@ export type TransactionInternal = {
 	OnAbort: Signal.Signal<string?>,
 	OnFail: Signal.Signal<string>,
 	OnFinally: Signal.Signal<string>,
-	OnProgress: Signal.Signal<(number, number, string)>,
+	OnProgress: Signal.Signal<number, number, string>,
 
 	Status: (self: TransactionInternal) -> string,
 	Lock: (self: TransactionInternal, key: string) -> (),

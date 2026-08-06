@@ -1,7 +1,8 @@
+--!strict
 -- Axiom Core
 -- Module: Types
 -- Purpose: Shared type definitions
--- Version: 1.3.0
+-- Version: 1.4.0
 
 local Core = script.Parent
 local Signal = require(Core:WaitForChild("Signal"))
@@ -11,6 +12,7 @@ local Types = {}
 --// ENUMS & HELPERS
 export type HitboxState = "Idle" | "Active" | "Stopped" | "Cooldown"
 export type HitboxPredictionMethod = "Linear" | "Angular" | "LinearAngular"
+export type HitboxShape = "Box" | "Sphere"
 
 --// STATE MACHINE
 export type State = "Idle" | "Active" | "Stopped" | "Cooldown"
@@ -27,7 +29,10 @@ export type StateMachine = {
 export type Hitbox = {
 	-- Properties
 	Size: Vector3,
-	CFrame: BasePart | CFrame,
+	Shape: HitboxShape,
+	Radius: number,
+	HitResetInterval: number?,
+	CFrame: BasePart | Attachment | CFrame | Vector3,
 	Offset: CFrame,
 	Duration: number,
 	Ignore: {Instance},
@@ -55,7 +60,7 @@ export type Hitbox = {
 	Start: (self: Hitbox) -> (),
 	Stop: (self: Hitbox) -> (),
 	Destroy: (self: Hitbox) -> (),
-	SetCFrame: (self: Hitbox, cf: CFrame | BasePart) -> (),
+	SetCFrame: (self: Hitbox, cf: CFrame | BasePart | Attachment | Vector3) -> (),
 	GetPoolStats: () -> {available: number, inUse: number},
 
 	-- Internal / Private
@@ -67,6 +72,7 @@ export type Hitbox = {
 	_visualizerPart: Part?,
 	_elapsed: number,
 	_destroyed: boolean,
+	_lastHitReset: number?,
 
 	-- Private Methods
 	_cleanup: (self: Hitbox) -> (),
@@ -85,8 +91,8 @@ export type Timer = {
 	Running: boolean,
 
 	-- Signals
-	OnFinished: {FireSafe: (any) -> (), DisconnectAllFast: (any) -> (), new: () -> any},
-	OnUpdated: {FireFast: (any, number) -> (), DisconnectAllFast: (any) -> (), new: () -> any},
+	OnFinished: Signal.Signal<()>,
+	OnUpdated: Signal.Signal<number>,
 
 	-- Methods
 	Start: (self: Timer) -> (),

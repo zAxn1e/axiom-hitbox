@@ -3,7 +3,7 @@
 -- Axiom Core
 -- Module: CharacterService
 -- Purpose: Managed, type-safe access to LocalPlayer character lifecycle
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --[[
 	Axiom Character Service
@@ -66,7 +66,8 @@
 --]]
 
 local Players = game:GetService("Players")
-local Player = Players.LocalPlayer :: Player
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer :: Player?
 
 local Axiom = script.Parent.Parent
 local Signal = require(Axiom.Core:WaitForChild("Signal"))
@@ -116,29 +117,35 @@ CharacterService.CharacterRemoving = Signal.new()
 CharacterService._initialized = false
 
 function CharacterService:_Init()
-	if self._initialized then
+	local localPlayer = Player
+	if self._initialized or not RunService:IsClient() or not localPlayer then
 		return
 	end
 	self._initialized = true
 
-	Player.CharacterAdded:Connect(function(char)
+	localPlayer.CharacterAdded:Connect(function(char)
 		self:_Bind(char)
 	end)
 
-	Player.CharacterRemoving:Connect(function()
+	localPlayer.CharacterRemoving:Connect(function()
 		self:_Unbind()
 	end)
 
-	local currentCharacter = Player.Character
+	local currentCharacter = localPlayer.Character
 	if currentCharacter then
 		self:_Bind(currentCharacter)
 	end
 end
 
 function CharacterService:_Bind(char: Model)
-	local root = char:WaitForChild("HumanoidRootPart") :: BasePart
-	local humanoid = char:WaitForChild("Humanoid") :: Humanoid
-	local animator = humanoid:WaitForChild("Animator") :: Animator
+	local root = char:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+	local humanoid = char:WaitForChild("Humanoid", 5) :: Humanoid?
+	local animator = if humanoid then (humanoid:WaitForChild("Animator", 5) :: Animator?) else nil
+
+	-- Guard against fast respawn: character may have been destroyed while yielding
+	if not char:IsDescendantOf(game) or not root or not humanoid then
+		return
+	end
 
 	-- Guard against fast respawn: character may have been destroyed while yielding
 	if not char:IsDescendantOf(game) then
@@ -165,7 +172,7 @@ function CharacterService:_Unbind()
 end
 
 function CharacterService:_AwaitReady()
-	if not self.Character then
+	while not self.Character do
 		Await.Signal(self.CharacterAdded)
 	end
 end
@@ -177,39 +184,37 @@ function CharacterService:GetCharacter(): Model
 	return character :: Model
 end
 
-
 function CharacterService:GetHumanoid(): Humanoid
-	if self.Humanoid then
-		return self.Humanoid
+	while not self.Humanoid do
+		Await.Signal(self.CharacterAdded :: any)
 	end
 
-	Await.Signal(self.CharacterAdded :: any)
 	local Humanoid = assert(self.Humanoid, "Humanoid missing")
 	return Humanoid :: Humanoid
 end
 
 function CharacterService:GetAnimator(): Animator
-	if self.Animator then
-		return self.Animator
+	while not self.Animator do
+		Await.Signal(self.CharacterAdded :: any)
 	end
 
-	Await.Signal(self.CharacterAdded)
 	local Animator = assert(self.Animator, "Animator missing")
 	return Animator :: Animator
 end
 
 function CharacterService:GetRoot(): BasePart
-	if self.Root then
-		return self.Root
+	while not self.Root do
+		Await.Signal(self.CharacterAdded :: any)
 	end
 
-	Await.Signal(self.CharacterAdded)
 	local Root = assert(self.Root, "Root missing")
 	return Root :: BasePart
 end
 
 function CharacterService:Get()
-	self:_AwaitReady()
+	while not (self.Character and self.Root and self.Humanoid) do
+		Await.Signal(self.CharacterAdded :: any)
+	end
 
 	return assert(self.Character), assert(self.Root), assert(self.Humanoid), assert(self.Animator)
 end

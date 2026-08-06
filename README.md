@@ -22,14 +22,17 @@ Axiom does **not** include gameplay rules — it is infrastructure-first by desi
 
 - Server-authoritative hitbox system
 - Explicit lifecycle (`Start / Stop / Destroy`)
-- Adaptive object pooling & reuse
+- Adaptive object pooling & reuse ($O(1)$ operations)
+- Spatial queries: **Box** (`GetPartBoundsInBox`) & **Sphere** (`GetPartBoundsInRadius`)
+- Channeling / Continuous hit support via `HitResetInterval`
+- Attachment, BasePart (dynamic), and CFrame tracking
 - Optional **velocity prediction (linear / angular)**
 - Full `--!strict` typing across Hitbox & Core
-- Lightweight synchronous Signal system
+- Lightweight synchronous Signal system (`FireSafe` exception handling)
 - Coroutine-based Await synchronization
 - Token-based cancellation & timeouts
-- Character helpers with typed access
-- Designed for **low allocation & low GC pressure**
+- Character helpers with typed access and timeout protection
+- Designed for **zero-allocation hot paths & low GC pressure**
 
 > Combat logic, damage systems, VFX, and gameplay orchestration are intentionally **not included**.
 
@@ -70,7 +73,7 @@ Use **only packaged builds**, not git clone.
 
 ---
 
-### ⛔ Not Supported — Do NOT do this
+## ⛔ Not Supported — Do NOT do this
 
 - cloning this repo for production use
 - importing `/src` directly into Studio
@@ -116,8 +119,8 @@ local Hitbox = require(Axiom.Hitbox)
 local hb = Hitbox.new()
 hb.Size = Vector3.new(6, 6, 6)
 
--- Supports BasePart (dynamic) or CFrame (static)
-hb.CFrame = character.HumanoidRootPart -- or hb:SetCFrame(...)
+-- Supports BasePart (dynamic), Attachment, or CFrame (static)
+hb.CFrame = character.HumanoidRootPart -- or tool.Handle.HitAttachment
 
 hb.Offset = CFrame.new(0, 0, -3)
 hb.Duration = 0.25
@@ -156,8 +159,11 @@ Client usage is allowed only for:
 
 | Property           | Type                                     | Notes             |
 | ------------------ | -----------------------------------------| ----------------- |
-| `Size`             | `Vector3`                                | box bounds        |
-| `CFrame`           | `CFrame or BasePart`                     | auto-tracking basepart supported |
+| `Size`             | `Vector3`                                | box bounds (default 4,4,4) |
+| `Shape`            | `"Box" \| "Sphere"`                      | spatial query type (default `"Box"`) |
+| `Radius`           | `number`                                 | radius when `Shape = "Sphere"` |
+| `HitResetInterval` | `number?`                                | interval (seconds) to reset hit memory for continuous attacks |
+| `CFrame`           | `CFrame \| BasePart \| Attachment`       | auto-tracking basepart/attachment supported |
 | `Offset`           | `CFrame`                                 | local offset      |
 | `Duration`         | `number`                                 | seconds           |
 | `Ignore`           | `{ Instance }`                           | excluded          |
@@ -175,7 +181,7 @@ Client usage is allowed only for:
 | ------------------------------ | --------------------------------------- |
 | `OnStart(hitbox)`              | when activated                          |
 | `OnUpdate(dt, hitbox)`         | heartbeat loop                          |
-| `OnHit(model, humanoid, part)` | **fires once per model per activation** |
+| `OnHit(model, humanoid, part)` | **fires once per model per activation** (or per `HitResetInterval`) |
 | `OnStop(hitbox)`               | when stopped                            |
 
 ---
@@ -188,6 +194,47 @@ Client usage is allowed only for:
 * `:Destroy()` - returns to internal pool
 
 > After `Destroy()`, **do not continue using the reference**
+
+---
+
+## 🔵 Sphere & Radial Attacks (v1.4.0)
+
+```lua
+local hb = Hitbox.new()
+hb.Shape = "Sphere"
+hb.Radius = 12
+hb.CFrame = character.HumanoidRootPart
+hb.Duration = 0.3
+hb.Ignore = { character }
+
+hb.OnHit:Connect(function(model, humanoid, part)
+    humanoid:TakeDamage(50)
+end)
+
+hb:Start()
+```
+
+---
+
+## 🔄 Continuous / Channeling Attacks (v1.4.0)
+
+For continuous attacks like spin attacks, laser beams, or auras:
+
+```lua
+local hb = Hitbox.new()
+hb.Shape = "Sphere"
+hb.Radius = 8
+hb.CFrame = character.HumanoidRootPart
+hb.Duration = 3.0
+hb.HitResetInterval = 0.5 -- Reset hit memory every 0.5s (deals damage 2x per second)
+hb.Ignore = { character }
+
+hb.OnHit:Connect(function(model, humanoid, part)
+    humanoid:TakeDamage(10)
+end)
+
+hb:Start()
+```
 
 ---
 

@@ -2,7 +2,7 @@
 -- Axiom Core
 -- Module: Await
 -- Purpose: Lightweight coroutine-based synchronization primitives for Roblox
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --[[
 	Axiom Await Core Library
@@ -118,7 +118,7 @@ export type CancelToken = CancelTokenInternal
 -- TryResult
 -- Result-based error boundary used by Await.Try.
 -- This avoids tuple-based error signaling which is not type-safe in Luau.
-type TryResult = { success: true, values: {any} } | { success: false, error: any }
+export type TryResult = { success: true, values: {any} } | { success: false, error: any }
 
 -- AnyTask
 -- A task that may return values.
@@ -170,18 +170,20 @@ local function safeResume(thread: thread)
 	end
 end
 
+type DisconnectableTable = { Disconnect: (self: any) -> () }
+
 -- Unified cleanup handler for connections, functions, or instances
-local function disconnectConnection(conn: any)
+local function disconnectConnection(conn: unknown)
 	if not conn then return end
 	
 	if typeof(conn) == "RBXScriptConnection" then
 		(conn :: RBXScriptConnection):Disconnect()
 	elseif type(conn) == "function" then
-		(conn :: any)()
+		(conn :: () -> ())()
 	elseif type(conn) == "table" and type((conn :: any).Disconnect) == "function" then
-		(conn :: any):Disconnect()
+		(conn :: DisconnectableTable):Disconnect()
 	elseif typeof(conn) == "Instance" then
-		conn:Destroy()
+		(conn :: Instance):Destroy()
 	end
 end
 
@@ -543,11 +545,11 @@ end
 -- ====================================
 
 --// Await.AnySignals
-function Await.AnySignals<T...>(
-	signals: { AwaitableSignal<T...> },
+function Await.AnySignals(
+	signals: { AwaitableSignal<any> },
 	timeout: number?,
 	token: CancelToken?
-): T...
+): ...any
 	local tasks: { AnyTask } = {}
 	
 	for _, sig in ipairs(signals) do
@@ -696,7 +698,7 @@ end
 --// Await.Try
 -- Executes a function inside a protected call and returns a Result object.
 -- This avoids tuple-based error handling which is not type-safe in Luau.
-function Await.Try(fn): TryResult
+function Await.Try(fn: () -> ...any): TryResult
 	local packed: {any} = { pcall(fn) }
 	local ok = table.remove(packed, 1)
 	

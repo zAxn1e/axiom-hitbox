@@ -1,7 +1,7 @@
 --!strict
 -- Axiom Hitbox Framework
 -- Module: Hitbox
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --// Services
 local RunService = game:GetService("RunService")
@@ -14,6 +14,7 @@ local Types = require(Axiom.Core:WaitForChild("Types"))
 
 --// Export Types
 export type HitboxPredictionMethod = Types.HitboxPredictionMethod
+export type HitboxShape = Types.HitboxShape
 export type Hitbox = Types.Hitbox
 
 --// Internal Constants
@@ -26,19 +27,8 @@ Hitbox.__index = Hitbox
 --// Helper Functions
 local function applyAngularPrediction(cf: CFrame, angVel: Vector3, dt: number): CFrame
 	local speed = angVel.Magnitude
-	if speed == 0 then return cf end
-	return cf * CFrame.fromAxisAngle(angVel / speed, speed * dt)
-end
-
-local function copyOverlapParams(src: OverlapParams): OverlapParams
-	local o = OverlapParams.new()
-	o.FilterType = src.FilterType
-	o.CollisionGroup = src.CollisionGroup
-	o.RespectCanCollide = src.RespectCanCollide
-	o.FilterDescendantsInstances = src.FilterDescendantsInstances
-	o.MaxParts = src.MaxParts
-	o.Tolerance = src.Tolerance 
-	return o
+	if speed <= 1e-5 then return cf end
+	return cf * CFrame.fromAxisAngle(angVel.Unit, speed * dt)
 end
 
 --// Factory
@@ -62,9 +52,13 @@ local function createHitbox(): Hitbox
 	object._visualizerPart = nil
 	object._elapsed = 0
 	object._destroyed = false
-	object._activeOverlap = nil
+	object._activeOverlap = OverlapParams.new()
 	
 	object.Size = Vector3.new(4,4,4)
+	object.Shape = "Box"
+	object.Radius = 4
+	object.HitResetInterval = nil
+	object._lastHitReset = 0
 	object.CFrame = CFrame.identity
 	object.Offset = CFrame.identity
 	object.Duration = math.huge
@@ -87,12 +81,15 @@ local function resetHitbox(self: Hitbox)
 	self:_hideVisualizer()
 	
 	self.Size = Vector3.new(4,4,4)
+	self.Shape = "Box"
+	self.Radius = 4
+	self.HitResetInterval = nil
+	self._lastHitReset = 0
 	self.CFrame = CFrame.identity
 	self.Offset = CFrame.identity
 	self.Duration = math.huge
 	self.Visualizer = false
 	self.OverlapParams = nil
-	self._activeOverlap = nil
 	self._elapsed = 0
 	
 	self.UsePrediction = false
@@ -119,11 +116,13 @@ function Hitbox.new(): Hitbox
 	return _POOL:acquire()
 end
 
-function Hitbox:SetCFrame(cf: CFrame | BasePart)
+function Hitbox:SetCFrame(cf: CFrame | BasePart | Attachment | Vector3)
+	local self: Hitbox = self :: any
 	self.CFrame = cf
 end
 
 function Hitbox:Start()
+	local self: Hitbox = self :: any
 	if self._destroyed then
 		warn("Attempt to use Hitbox after Destroy()")
 		return
@@ -136,16 +135,24 @@ function Hitbox:Start()
 	self._destroyed = false
 	
 	table.clear(self._hit :: any) 
+	self._lastHitReset = 0
 	
 	if type(self.Ignore) ~= "table" then self.Ignore = {} end
 	
 	local sourceParams = self.OverlapParams or self._defaultOverlap
-	local runtimeOverlap = copyOverlapParams(sourceParams)
-	
+	local activeOverlap = self._activeOverlap or OverlapParams.new()
+	activeOverlap.FilterType = sourceParams.FilterType
+	activeOverlap.CollisionGroup = sourceParams.CollisionGroup
+	activeOverlap.RespectCanCollide = sourceParams.RespectCanCollide
+	activeOverlap.MaxParts = sourceParams.MaxParts
+	activeOverlap.Tolerance = sourceParams.Tolerance
+
 	if not self.OverlapParams then
-		runtimeOverlap.FilterDescendantsInstances = self.Ignore
+		activeOverlap.FilterDescendantsInstances = self.Ignore
+	else
+		activeOverlap.FilterDescendantsInstances = sourceParams.FilterDescendantsInstances
 	end
-	self._activeOverlap = runtimeOverlap
+	self._activeOverlap = activeOverlap
 
 	self._elapsed = 0
 	self.OnStart:FireSafe(self)
@@ -172,6 +179,7 @@ function Hitbox:Start()
 end
 
 function Hitbox:Stop()
+	local self: Hitbox = self :: any
 	if not self.StateMachine:set("Stopped") then return end
 
 	if self._conn then
@@ -184,6 +192,7 @@ function Hitbox:Stop()
 end
 
 function Hitbox:_cleanup()
+	local self: Hitbox = self :: any
 	if self._conn then
 		self._conn:Disconnect()
 		self._conn = nil :: any
@@ -194,10 +203,14 @@ function Hitbox:_cleanup()
 	self.OnStart:DisconnectAllFast()
 	self.OnStop:DisconnectAllFast()
 
-	self:_hideVisualizer()
+	if self._visualizerPart then
+		self._visualizerPart:Destroy()
+		self._visualizerPart = nil :: any
+	end
 end
 
 function Hitbox:Destroy()
+	local self: Hitbox = self :: any
 	if self._destroyed then return end
 	self._destroyed = true
 	self:_cleanup()
@@ -207,31 +220,55 @@ end
 
 --// State Queries
 function Hitbox:GetState(): string
+	local self: Hitbox = self :: any
 	return self.StateMachine.current
 end
 
-function Hitbox:Is(state: string): boolean
-	return self.StateMachine:is(state)
+function Hitbox:Is(state: string | Types.HitboxState): boolean
+	local self: Hitbox = self :: any
+	return self.StateMachine:is(state :: Types.HitboxState)
 end
 
 function Hitbox:IsActive(): boolean
+	local self: Hitbox = self :: any
 	return self.StateMachine:is("Active")
 end
 
 --// Internals
 function Hitbox:_update(baseCFrame: CFrame)
+	local self: Hitbox = self :: any
 	local activeOverlap = self._activeOverlap
 	if not activeOverlap then return end
 
-	local cf = baseCFrame * (self.Offset or CFrame.identity)
-	local parts = workspace:GetPartBoundsInBox(
-		cf,
-		self.Size,
-		activeOverlap
-	)
+	-- Check HitResetInterval for continuous/channeling attacks
+	local interval = self.HitResetInterval
+	if interval and interval > 0 then
+		local lastReset = self._lastHitReset or 0
+		if self._elapsed - lastReset >= interval then
+			self._lastHitReset = self._elapsed
+			table.clear(self._hit)
+		end
+	end
 
-	for _, part in ipairs(parts) do
-		local model = part:FindFirstAncestorOfClass("Model")
+	local offset = self.Offset or CFrame.identity
+	local cf: CFrame = baseCFrame * offset
+	local parts: {BasePart}
+
+	if self.Shape == "Sphere" then
+		local sizeX = self.Size.X
+		local r: number = self.Radius or (sizeX * 0.5)
+		parts = (workspace:GetPartBoundsInRadius(cf.Position, r, activeOverlap) :: any) :: {BasePart}
+	else
+		parts = (workspace:GetPartBoundsInBox(cf, self.Size, activeOverlap) :: any) :: {BasePart}
+	end
+
+	for _, part: BasePart in ipairs(parts) do
+		local parent: Instance? = part.Parent
+		if parent and self._hit[parent] then
+			continue
+		end
+
+		local model: Model? = part:FindFirstAncestorOfClass("Model")
 		if model and not self._hit[model] then
 			local hum = self._humCache[model]
 			if not hum then
@@ -241,40 +278,48 @@ function Hitbox:_update(baseCFrame: CFrame)
 
 			if hum then
 				self._hit[model] = true
-				self.OnHit:FireFast(model, hum, part)
+				self.OnHit:FireSafe(model, hum, part)
 			end
 		end
 	end
 end
 
 function Hitbox:_resolveBaseCFrame(): CFrame?
+	local self: Hitbox = self :: any
 	if typeof(self.CFrame) == "CFrame" then
 		return self.CFrame :: CFrame
+	elseif typeof(self.CFrame) == "Vector3" then
+		return CFrame.new(self.CFrame :: Vector3)
 	end
 
 	local part = self.CFrame
-	if typeof(part) == "Instance" and part:IsA("BasePart") then
-		if not part:IsDescendantOf(game) then return nil end
-		
-		local basePart = part :: BasePart
+	if typeof(part) == "Instance" then
+		if part:IsA("Attachment") then
+			local att = part :: Attachment
+			if not att:IsDescendantOf(game) then return nil end
+			return att.WorldCFrame
+		elseif part:IsA("BasePart") then
+			local basePart = part :: BasePart
+			if not basePart:IsDescendantOf(game) then return nil end
 
-		if not self.UsePrediction then return basePart.CFrame end
-		
-		local dt = (self.PredictionTime or 0) :: number
-		if dt <= 0 then return basePart.CFrame end
+			if not self.UsePrediction then return basePart.CFrame end
+			
+			local dt = (self.PredictionTime or 0) :: number
+			if dt <= 0 then return basePart.CFrame end
 
-		local method = self.PredictionMethod or "Linear"
-		local cf = basePart.CFrame
+			local method = self.PredictionMethod or "Linear"
+			local cf = basePart.CFrame
 
-		if method == "Linear" or method == "LinearAngular" then
-			cf = cf + basePart.AssemblyLinearVelocity * dt
+			if method == "Linear" or method == "LinearAngular" then
+				cf = cf + (basePart.AssemblyLinearVelocity * dt)
+			end
+
+			if method == "Angular" or method == "LinearAngular" then
+				cf = applyAngularPrediction(cf, basePart.AssemblyAngularVelocity, dt)
+			end
+
+			return cf
 		end
-
-		if method == "Angular" or method == "LinearAngular" then
-			cf = applyAngularPrediction(cf, basePart.AssemblyAngularVelocity, dt)
-		end
-
-		return cf
 	end
 
 	return CFrame.identity
@@ -282,33 +327,49 @@ end
 
 --// Debug visualization
 function Hitbox:_ensureVisualizer()
-	if not self.Visualizer or self._visualizerPart then return end
+	local self: Hitbox = self :: any
+	if not self.Visualizer then return end
 
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Transparency = 0.7
-	p.Color = Color3.fromRGB(255,60,60)
-	p.Material = Enum.Material.Neon
+	if not self._visualizerPart then
+		local newPart = Instance.new("Part")
+		newPart.Anchored = true
+		newPart.CanCollide = false
+		newPart.CanQuery = false
+		newPart.CanTouch = false
+		newPart.CastShadow = false
+		newPart.Transparency = 0.7
+		newPart.Color = Color3.fromRGB(255,60,60)
+		newPart.Material = Enum.Material.Neon
+		self._visualizerPart = newPart
+	end
+
+	local p: Part = self._visualizerPart :: Part
 	p.Parent = workspace
-	
-	self._visualizerPart = p
 end
 
 function Hitbox:_updateVisualizer(baseCFrame: CFrame)
-	if not self._visualizerPart then return end
+	local self: Hitbox = self :: any
+	if not self._visualizerPart or not self.Visualizer then return end
+	local p: Part = self._visualizerPart :: Part
 
-	self._visualizerPart.Size = self.Size
-	self._visualizerPart.CFrame = baseCFrame * self.Offset
+	if self.Shape == "Sphere" then
+		local sizeX = self.Size.X
+		local r: number = self.Radius or (sizeX * 0.5)
+		p.Shape = Enum.PartType.Ball
+		p.Size = Vector3.new(r * 2, r * 2, r * 2)
+	else
+		p.Shape = Enum.PartType.Block
+		p.Size = self.Size
+	end
+
+	local offset = self.Offset or CFrame.identity
+	p.CFrame = baseCFrame * offset
 end
 
 function Hitbox:_hideVisualizer()
+	local self: Hitbox = self :: any
 	if self._visualizerPart then
-		self._visualizerPart:Destroy()
-		self._visualizerPart = nil :: any
+		(self._visualizerPart :: Part).Parent = nil
 	end
 end
 

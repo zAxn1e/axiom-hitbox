@@ -2,7 +2,7 @@
 -- Axiom Core
 -- Module: State
 -- Purpose: Internal finite state mechanism
--- Version: 1.3.0
+-- Version: 1.4.0
 
 local Core = script.Parent.Parent:WaitForChild("Core")
 local Types = require(Core:WaitForChild("Types"))
@@ -30,9 +30,11 @@ local TRANSITIONS: TransitionTable = {
 	},
 	Stopped = {
 		Idle = true,
+		Active = true,
 	},
 	Cooldown = {
 		Idle = true,
+		Active = true,
 	},
 }
 

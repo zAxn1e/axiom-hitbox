@@ -2,7 +2,7 @@
 -- Axiom Core
 -- Module: Timer
 -- Purpose: Internal timing primitive
--- Version: 1.3.0
+-- Version: 1.4.0
 
 --// Services
 local RunService = game:GetService("RunService")
