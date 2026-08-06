@@ -1,82 +1,67 @@
 name: 🚀 Feature Request
-description: Propose a new feature, API addition, shape query, or capability for Axiom Framework
+description: Have an idea or enhancement for Axiom? We'd love to hear it!
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for suggesting a feature for Axiom!
-        Please review our [Contributing Guidelines](https://github.com/zAxn1e/axiom-hitbox/blob/main/CONTRIBUTING.md) to ensure your request aligns with Axiom's core principles:
-        * Low-level infrastructure (NOT gameplay/damage rules)
-        * Zero dynamic table allocations in hot paths
-        * Strict Luau compatibility
+        ### ✨ Have a feature idea for Axiom?
+        We appreciate community feedback! Tell us about your idea below so we can discuss how to best implement it.
 
   - type: dropdown
     id: component
     attributes:
-      label: Target Component
-      description: Which part of Axiom does this feature proposal target?
+      label: Which area would this feature enhance?
+      description: Select the module or area for your feature proposal.
       options:
-        - "Axiom.Hitbox (Spatial Queries / Shapes / Detection Mechanics)"
-        - "Axiom.Hitbox (Pooling / Lifecycle / Visualization)"
-        - "Axiom.Core (Signal / Scheduler / Timer / Concurrency)"
-        - "Axiom.Service (CharacterService / Infrastructure Services)"
-        - "Luau Type Export / DX / Tooling"
-        - "Other"
+        - "🎯 Axiom.Hitbox (Spatial Queries, Shapes, Detection)"
+        - "🔄 Axiom.Hitbox (Pooling, Lifecycle, Visualization)"
+        - "⚡ Axiom.Core (Signal, Scheduler, Timer, Concurrency)"
+        - "👤 Axiom.Service (CharacterService & Infrastructure)"
+        - "🏷️ Luau Types & DX / Developer Tooling"
+        - "💡 Other / General Idea"
     validations:
       required: true
 
   - type: textarea
     id: problem
     attributes:
-      label: Problem Statement
-      description: Is your feature request related to a problem or limitation? Please describe.
-      placeholder: "e.g., I'm frustrated when trying to query continuous area hits for non-block shapes because..."
+      label: What problem or use case does this solve?
+      description: Describe the goal, current pain point, or why this feature would be helpful.
+      placeholder: "e.g., Currently it takes extra setup code to query continuous hitboxes for sphere shapes..."
     validations:
       required: true
 
   - type: textarea
     id: solution
     attributes:
-      label: Proposed Solution / Feature Description
-      description: Describe the solution or feature you would like to see added.
-      placeholder: "Describe how the proposed API or behavior should work."
+      label: Describe your proposed feature
+      description: Tell us how you imagine this feature working.
+      placeholder: "e.g., Add a `:SetShape(shapeType, params)` method to quickly switch shapes..."
     validations:
       required: true
-
-  - type: checkboxes
-    id: infrastructure_alignment
-    attributes:
-      label: Infrastructure Alignment Verification
-      description: Confirm that your proposal follows Axiom's design boundaries.
-      options:
-        - label: "This feature is low-level infrastructure (it does NOT calculate damage, combat rules, camera, status effects, or UI)."
-          required: true
-        - label: "This feature preserves zero/minimal memory allocation during active detection loops."
-          required: true
-        - label: "This feature does NOT require yielding inside hot paths (e.g. no task.wait)."
-          required: true
 
   - type: textarea
     id: example_usage
     attributes:
-      label: Proposed API Usage Example
-      description: Show how a user would use this new API in code.
+      label: Code example (optional)
+      description: Show a quick example of how you'd like to use this in code.
       render: lua
       placeholder: |
         local Axiom = require(path.to.Axiom)
-        -- Example of proposed API usage:
+
+        -- Proposed syntax:
         local hitbox = Axiom.Hitbox.new(...)
-        hitbox:SetCustomQuery(...)
+        hitbox:SetShape("Sphere", { Radius = 5 })
     validations:
       required: false
 
   - type: textarea
-    id: alternatives
+    id: additional_context
     attributes:
-      label: Alternative Solutions Considered
-      description: Describe any alternative solutions or features you've considered.
-      placeholder: "e.g., Doing this in a wrapper module, but..."
+      label: Additional context or alternatives considered (optional)
+      description: Share any alternative workarounds or extra details you've considered.
+      placeholder: "Any additional details or thoughts"
     validations:
       required: false

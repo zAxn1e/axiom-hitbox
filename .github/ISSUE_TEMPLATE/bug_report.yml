@@ -1,28 +1,28 @@
 name: 🐛 Bug Report
-description: Report a bug, crash, unexpected behavior, or Luau type solver issue in Axiom
+description: Found a bug, unexpected error, or type warning? Let us know so we can fix it!
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting an issue in Axiom Framework!
-        Please fill out the form below to help us reproduce and resolve the problem efficiently.
+        ### 👋 Thanks for helping improve Axiom!
+        If something isn't working as expected, please fill out the fields below. Don't worry if you don't have all the details—just provide as much as you can!
 
   - type: dropdown
     id: component
     attributes:
-      label: Affected Component
-      description: Which part of Axiom is experiencing the issue?
+      label: Which area is affected?
+      description: Select the component where the issue occurs (if you're not sure, pick "Other / Not Sure").
       options:
-        - "Axiom.Hitbox (Spatial Detection / Lifecycle / Shapes / Visualization)"
-        - "Axiom.Hitbox (Pool Recycling / Memory Allocation)"
-        - "Axiom.Core (Signal / Scheduler / Timer)"
-        - "Axiom.Core (Concurrency / Transaction / Await)"
-        - "Axiom.Service (CharacterService / Character Lifecycle)"
-        - "Luau Type System (--!strict Types / Type Solver Warnings)"
-        - "Documentation / Examples"
-        - "Other / Unsure"
+        - "🎯 Axiom.Hitbox (Spatial Detection, Lifecycle, Shapes, Visualizer)"
+        - "🔄 Axiom.Hitbox (Pool Recycling & Memory)"
+        - "⚡ Axiom.Core (Signal, Scheduler, Timer)"
+        - "🤝 Axiom.Core (Concurrency, Transaction, Await)"
+        - "👤 Axiom.Service (CharacterService)"
+        - "🏷️ Luau Types (--!strict Warnings & Typing)"
+        - "📚 Documentation / Examples"
+        - "❓ Other / Not Sure"
     validations:
       required: true
 
@@ -30,76 +30,65 @@ body:
     id: version
     attributes:
       label: Axiom Version
-      description: What version of Axiom are you using? (e.g., v1.4.0, main branch commit hash)
-      placeholder: "e.g., v1.4.0"
+      description: What version of Axiom are you using?
+      placeholder: "e.g., v1.4.0, latest release, or main branch"
     validations:
-      required: true
-
-  - type: dropdown
-    id: luau_mode
-    attributes:
-      label: Luau Type Checker Mode
-      description: What mode is your script running in?
-      options:
-        - "--!strict"
-        - "--!nonstrict"
-        - "--!nocheck"
-    validations:
-      required: true
+      required: false
 
   - type: textarea
     id: description
     attributes:
-      label: Problem Description
-      description: A clear and concise description of what the bug is.
-      placeholder: "Describe what happens and what you expected to happen."
+      label: What happened?
+      description: Describe the bug or unexpected behavior as clearly as possible.
+      placeholder: "e.g., When I call hitbox:Stop(), the visualizer remains visible on screen..."
     validations:
       required: true
 
   - type: textarea
     id: reproduction
     attributes:
-      label: Minimal Reproduction Code
-      description: Provide a minimal Luau code snippet or step-by-step instructions to reproduce the issue.
+      label: Steps to reproduce or code sample
+      description: Share a short code snippet or step-by-step instructions so we can reproduce it.
       render: lua
       placeholder: |
-        local Axiom = require(path.to.Axiom)
-        local hitbox = Axiom.Hitbox.new(...)
+        local Axiom = path.to.Axiom
+        local Hitbox = require(Axiom.Hitbox)
+
+        -- Example setup that reproduces the bug:
+        local hitbox = Hitbox.new(...)
         hitbox:Start()
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected vs Actual Behavior
-      description: What did you expect to happen, and what actually happened?
-      placeholder: |
-        Expected: Hitbox fires OnHit signal without errors when character despawns.
-        Actual: Throws nil reference error in CharacterService line 42.
+      label: What did you expect to happen?
+      description: Tell us what should have happened instead.
+      placeholder: "e.g., The visualizer should disappear immediately after calling Stop()."
     validations:
-      required: true
+      required: false
 
   - type: dropdown
     id: environment
     attributes:
-      label: Execution Environment
-      description: Where does this bug occur?
+      label: Where are you testing?
+      description: What environment are you running in?
       options:
-        - "Roblox Server (Live Game)"
-        - "Roblox Server (Studio Test)"
+        - "Roblox Studio (Play Solo / Test)"
+        - "Roblox Live Server"
         - "Roblox Client"
-        - "Rojo + Luau / Lune Unit Testing"
+        - "Rojo / Lune / Custom Pipeline"
         - "Other"
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: logs
     attributes:
-      label: Stack Trace / Error Logs
-      description: Paste any error messages, stack tracebacks, or output log text here.
+      label: Error logs or screenshots (optional)
+      description: Paste any stack trace error messages or drag & drop screenshots here.
       render: shell
-      placeholder: "Script 'Axiom.Service.CharacterService', Line 42 - ... "
+      placeholder: "Paste output log or error stack trace here if available"
     validations:
       required: false
