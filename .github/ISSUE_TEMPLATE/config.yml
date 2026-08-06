@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Axiom Documentation
+    url: https://github.com/zAxn1e/axiom-hitbox#readme
+    about: Read the official documentation and API references before filing an issue.
+  - name: 📜 Contributing Guidelines
+    url: https://github.com/zAxn1e/axiom-hitbox/blob/main/CONTRIBUTING.md
+    about: Check the infrastructure boundaries, Luau typing rules, and PR guidelines.

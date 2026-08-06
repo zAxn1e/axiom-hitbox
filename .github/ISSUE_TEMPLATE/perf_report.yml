@@ -1,0 +1,68 @@
+name: ⚡ Performance / Memory Issue
+description: Report high memory allocation, CPU bottleneck, micro-stuttering, or GC churn in Axiom hot paths
+title: "[Perf]: "
+labels: ["performance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Axiom is built for high-frequency hot paths.
+        If you have identified memory allocations, CPU spikes, or garbage collection churn in Axiom, please provide details below.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Hot Path
+      description: Which area is exhibiting performance overhead?
+      options:
+        - "Hitbox Spatial Queries (OverlapParams / Raycast / Shapecast)"
+        - "Hitbox Pool Lifecycle (Recycling / Creation Churn)"
+        - "Hitbox Fast-Path Hit Lookup & Deduplication"
+        - "Core Scheduler / Signal Dispatch"
+        - "CharacterService Event Connections"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bottleneck Description
+      description: Explain the performance degradation or memory allocation issue observed.
+      placeholder: "e.g., Calling Hitbox:Start() inside active loops allocates 2KB per frame because..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Benchmark & Profiler Data
+      description: Provide Microprofiler screenshots, memory allocation stats, or benchmark numbers.
+      placeholder: |
+        - Active Hitboxes: 100
+        - Query Frequency: 60 Hz
+        - Microprofiler Cost: 1.8ms per frame
+        - Allocation Rate: 45 KB/s
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Code / Benchmark Script
+      description: Provide the script or test case used to measure this behavior.
+      render: lua
+      placeholder: |
+        local Axiom = require(path.to.Axiom)
+        -- Benchmark script:
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposed_fix
+    attributes:
+      label: Proposed Optimization
+      description: If you have an idea on how to optimize this hot path, outline it here.
+      placeholder: "e.g., Cache OverlapParams table or use O(1) swap-remove..."
+    validations:
+      required: false
