@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Main Emerald-Cyan Gradient -->
+    <linearGradient id="axiomGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+
+    <!-- Accent Electric Blue Gradient -->
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+
+    <!-- Ambient Glow Filter -->
+    <filter
+      id="glow"
+      x="-50%"
+      y="-50%"
+      width="200%"
+      height="200%"
+      color-interpolation-filters="sRGB"
+    >
+      <feGaussianBlur
+        in="SourceGraphic"
+        stdDeviation="12"
+        result="blur"
+      />
+    
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Container Box with Subtle Border -->
+  <rect width="500" height="500" rx="512" x="6" y="6" fill="url(#bgGrad)" stroke="url(#axiomGrad)" stroke-width="6" stroke-opacity="0.3"/>
+
+  <g transform="translate(256 256) scale(1.125) translate(-256 -256)">
+    <!-- Background Ambient Glow -->
+    <circle cx="256" cy="256" r="160" fill="url(#axiomGrad)" opacity="0.12" filter="url(#glow)"/>
+  
+    <!-- Outer Isometric 3D Spatial Hexagon / Box Target -->
+    <path d="M256 72L412 162V342L256 432L100 342V162L256 72Z" 
+          stroke="url(#axiomGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  
+    <!-- 3D Cube Perspective Axis Lines -->
+    <path d="M256 72V256M412 162L256 256M100 162L256 256" 
+          stroke="url(#axiomGrad)" stroke-width="8" stroke-dasharray="16 12" opacity="0.4"/>
+  
+    <!-- Core Axiom "A" Monogram / Target Crosshair -->
+    <path d="M256 140L356 320H306L256 220L206 320H156L256 140Z" fill="url(#axiomGrad)"/>
+    <path d="M200 280H312" stroke="url(#accentGrad)" stroke-width="14" stroke-linecap="round"/>
+  
+    <!-- Inner Diamond Core Target -->
+    <polygon points="256,220 280,256 256,292 232,256" fill="#FFFFFF" opacity="0.95" filter="url(#glow)"/>
+  
+    <!-- Precision Corner Reticles (Spatial Bounds) -->
+    <path d="M120 180L120 150L150 150" stroke="#34D399" stroke-width="8" stroke-linecap="round"/>
+    <path d="M392 180L392 150L362 150" stroke="#34D399" stroke-width="8" stroke-linecap="round"/>
+    <path d="M120 332L120 362L150 362" stroke="#06B6D4" stroke-width="8" stroke-linecap="round"/>
+    <path d="M392 332L392 362L362 362" stroke="#06B6D4" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>
