@@ -1,11 +1,13 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
+const base = process.env.GITHUB_ACTIONS ? '/axiom-hitbox/' : '/'
+
 export default withMermaid(
   defineConfig({
     title: 'Axiom Hitbox Framework',
     description: 'High-performance, server-authoritative Roblox hitbox and synchronization framework',
-    base: process.env.GITHUB_ACTIONS ? '/axiom-hitbox/' : '/',
+    base: base,
     cleanUrls: true,
     lastUpdated: true,
 
@@ -14,7 +16,8 @@ export default withMermaid(
     },
 
     head: [
-      ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+      ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}logo.svg` }],
+      ['link', { rel: 'alternate icon', type: 'image/png', href: `${base}logo.svg` }],
       ['meta', { name: 'theme-color', content: '#10b981' }],
       ['meta', { name: 'og:type', content: 'website' }],
       ['meta', { name: 'og:site_name', content: 'Axiom Hitbox Framework' }],
