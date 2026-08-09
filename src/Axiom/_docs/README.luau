@@ -8,6 +8,7 @@
 	Core Version: 1.4.0
 	Docs Version: 1.4.0
 	Docs Status: Up-to-date
+	Docs Website: https://zaxn1e.github.io/axiom-hitbox/
 	
 	Compatibility:
 	- Axiom Hitbox >= 1.4.0
@@ -20,6 +21,10 @@
 	
 	This document explains how to use the Hitbox system,
 	its lifecycle, and best practices.
+	
+	For complete interactive guides, API references, and architecture
+	diagrams, visit the official website:
+	https://zaxn1e.github.io/axiom-hitbox/
 	
 	This file is documentation-only.
 	It is NOT required by any runtime module.

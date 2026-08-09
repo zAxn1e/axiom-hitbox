@@ -4,6 +4,8 @@ A lightweight, server-authoritative framework for Roblox game development, provi
 
 Axiom focuses on **determinism, performance, and stability** for long-running Roblox servers.
 
+📖 **Official Documentation Site**: [Axiom Hitbox Framework](https://zaxn1e.github.io/axiom-hitbox/)
+
 ---
 
 ## ✨ Overview
@@ -15,6 +17,8 @@ Axiom is a modular framework designed for scalable Roblox experiences. It provid
 - **Service Layer** – character access and lifecycle utilities
 
 Axiom does **not** include gameplay rules — it is infrastructure-first by design.
+
+> 📚 **Complete Documentation**: Explore interactive guides, full API references, and architecture details on the [Axiom Hitbox Framework Website](https://zaxn1e.github.io/axiom-hitbox/).
 
 ---
 
@@ -87,17 +91,6 @@ Supported only for:
 - debugging
 
 ---
-<!-- 
-## 📁 Recommended runtime structure
-
-````
-ReplicatedStorage
-└── Axiom
-    ├── Core
-    ├── Service
-    ├── _docs
-    └── Hitbox
-```` -->
 
 ### Example require
 
@@ -148,12 +141,14 @@ Client usage is allowed only for:
 * local effects
 * visualization
 
-🚫 **Do not resolve damage on client**
+🚫 **Do not resolve damage on client**  
 🚫 **Do not trust client hits**
 
 ---
 
 ## 🧩 Hitbox API
+
+For full API documentation and method signatures, see the [Axiom Hitbox API Reference](https://zaxn1e.github.io/axiom-hitbox/api/hitbox).
 
 ### Properties
 
@@ -287,9 +282,9 @@ Best for:
 * `Ignore` list applied when no OverlapParams provided
 * OnHit triggers:
 
-✔ once per **humanoid model** per activation
-✔ ignores duplicate parts
-✔ caches humanoids for performance
+✔ once per **humanoid model** per activation  
+✔ ignores duplicate parts  
+✔ caches humanoids for performance  
 
 ---
 
@@ -338,28 +333,17 @@ All yield until ready.
 
 ---
 
-## 🧪 Not Included (by design)
+## 📚 Official Documentation & Resources
 
-* damage formulas
-* stun / poise / combo logic
-* ability logic
-* VFX/SFX
-* animations
-* state machines
-
----
-
-## 📌 Project Status
-
-* Active development
-* API surface intentionally small
-* Internal structures may change
+- 🌐 **Website**: [Axiom Hitbox Framework](https://zaxn1e.github.io/axiom-hitbox/)
+- 📦 **Creator Store**: [Roblox Creator Store Link](https://create.roblox.com/store/asset/121594941080314)
+- 🚀 **Releases**: [GitHub Releases](https://github.com/zAxn1e/axiom-hitbox/releases)
 
 ---
 
 ## 📜 License
 
-See [LICENSE.lua](./LICENSE.md) for license information.
+See [LICENSE.md](./LICENSE.md) for license information.
 
 ---
 
