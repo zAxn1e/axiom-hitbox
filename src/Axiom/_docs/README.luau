@@ -33,7 +33,7 @@
 	1. Overview
 	----------------------------------------------------
 	
-	Hitbox is a high-performance, server-authoritative
+	Hitbox is a server-authoritative, low-overhead
 	spatial query system designed for scalable combat
 	and long-running Roblox servers.
 	
@@ -42,7 +42,7 @@
 	- Continuous / Channeling hit intervals
 	- Velocity Prediction (Linear & Angular)
 	- A clear lifecycle (Start / Stop / Destroy)
-	- Automatic pooling with O(1) tracking & adaptive shrinking
+	- Automatic object pooling with integer tracking & adaptive shrinking
 	- Zero coupling with combat logic
 	
 	----------------------------------------------------

@@ -8,13 +8,13 @@ This document provides concise, explicit, and accurate context for AI coding ass
 
 ## 1. Project Overview
 
-Axiom Hitbox is a server-authoritative, zero-allocation spatial query framework for Roblox Luau.
+Axiom Hitbox is a server-authoritative spatial query framework for Roblox Luau.
 It decouples infrastructure primitives (spatial detection, timing, cancellation, object pooling) from gameplay rules (damage, combos, VFX, cooldowns).
 
 ### Key Architecture Rules
 - **Server Authority**: Spatial detection and damage calculation MUST run on the server. Clients must never calculate or transmit hit target arrays over `RemoteEvent`s.
 - **Strict Type Safety**: All scripts using Axiom should enforce `--!strict` Luau mode.
-- **Memory Stability**: Uses an internal O(1) adaptive object pool (`Hitbox.new()`) with pre-allocated `OverlapParams` to achieve zero GC pressure during combat.
+- **Allocation Reduction**: Retains pre-instantiated Hitbox objects in an adaptive pool (`Hitbox.new()`) and reuses `OverlapParams` instances to reduce framework-side memory allocation and GC pressure during combat.
 
 ---
 
@@ -38,10 +38,10 @@ local Hitbox = require(Axiom.Hitbox)
 ```lua
 function Hitbox.new(): Hitbox
 ```
-Acquires a `Hitbox` instance from the internal $O(1)$ adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
+Acquires a `Hitbox` instance from the internal adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
 
 - **Returns**: `Hitbox`
-- **Performance**: $O(1)$ constant time lookup. Pre-warms 30 instances on require.
+- **Pool Allocation**: Retrieves a pre-instantiated Hitbox from the object pool. Pre-warms 30 instances on initial require to reduce allocation spikes during initial use.
 
 ---
 
@@ -162,7 +162,7 @@ Returns `true` if current state is `"Active"`.
 
 # Signal API Reference
 
-`Signal` is a lightweight, synchronous, zero-allocation event primitive used throughout Axiom Core and Hitbox.
+`Signal` is a lightweight, synchronous event primitive used throughout Axiom Core and Hitbox.
 
 ```lua
 local Signal = require(Axiom.Core.Signal)
@@ -203,7 +203,7 @@ Connects a callback handler that automatically disconnects itself after the firs
 ```lua
 function Signal:FireFast(...: any): ()
 ```
-Fires all connected handlers sequentially without error handling wrappers. Maximum speed for hot paths.
+Iterates directly over the callback array without additional protected-call (`pcall`) handling. This reduces framework-side dispatch overhead, with the caller responsible for exception handling where applicable.
 
 ---
 
@@ -227,7 +227,7 @@ Returns `true` if any active callbacks are currently connected.
 ```lua
 function Signal:DisconnectAllFast(): ()
 ```
-Clears all connected handlers instantly in $O(1)$ time.
+Iterates directly over the handler array to clear all active connections without individual connection teardown logic.
 
 ---
 

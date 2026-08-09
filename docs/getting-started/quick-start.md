@@ -1,6 +1,6 @@
 ---
 title: Quick Start Guide
-description: Build your first server-authoritative melee hitbox in Roblox Studio with zero-allocation pooling and dynamic tracking.
+description: Build your first server-authoritative melee hitbox in Roblox Studio with adaptive object pooling and dynamic tracking.
 ---
 
 # Quick Start Guide
@@ -81,7 +81,7 @@ end
 ```lua
 local hb = Hitbox.new()
 ```
-`Hitbox.new()` acquires a pre-allocated object from an internal $O(1)$ memory pool. It warms 30 instances on require, ensuring **zero memory allocation overhead** during active gameplay.
+`Hitbox.new()` retrieves a retained instance from an internal object pool (`_POOL`). The pool pre-warms 30 instances on initial require, avoiding repeated framework-side table construction during active gameplay.
 
 ### Step B: Tracking Target CFrame
 ```lua

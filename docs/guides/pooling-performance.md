@@ -1,13 +1,13 @@
 # Object Pooling & Performance Best Practices
 
-Axiom Hitbox uses an internal adaptive object pool (`_POOL`) to maintain zero allocation pressure during combat.
+Axiom Hitbox uses an internal adaptive object pool (`_POOL`) to retain and reuse `Hitbox` state across activations, reducing transient table allocations and GC pressure during combat.
 
 ---
 
 ## 1. How the Adaptive Pool Works
 
 - **Warm Allocation**: On initial require, 30 `Hitbox` instances are pre-allocated.
-- **Constant Time ($O(1)$)**: `:acquire()` (`Hitbox.new()`) pops an instance from the array in $O(1)$ time. `:release()` (`hb:Destroy()`) resets state and pushes it back in $O(1)$ time.
+- **Instance Reuse**: `:acquire()` (`Hitbox.new()`) retrieves a retained instance from the pool array. `:release()` (`hb:Destroy()`) resets internal state and returns the instance to the pool array for reuse.
 - **Adaptive Shrinking**: If a server experiences a sudden spike (e.g. 200 hitboxes allocated), the pool temporarily expands. After 30 seconds of inactivity, an adaptive background thread shrinks excess instances back down to the baseline size of 20.
 
 ---

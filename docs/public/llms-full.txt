@@ -160,7 +160,7 @@ end
 ```lua
 local hb = Hitbox.new()
 ```
-`Hitbox.new()` acquires a pre-allocated object from an internal $O(1)$ memory pool. It warms 30 instances on require, ensuring **zero memory allocation overhead** during active gameplay.
+`Hitbox.new()` retrieves a retained instance from an internal object pool (`_POOL`). The pool pre-warms 30 instances on initial require, avoiding repeated framework-side table construction during active gameplay.
 
 ### Step B: Tracking Target CFrame
 ```lua
@@ -199,7 +199,7 @@ hb:Destroy()
 
 # Architecture & Authority Model
 
-Axiom Hitbox is engineered as low-level, high-frequency infrastructure for competitive Roblox multiplayer games.
+Axiom Hitbox is engineered as low-level infrastructure for server-authoritative Roblox multiplayer games.
 
 Understanding the architectural boundaries and server authority model is critical for designing scalable combat systems.
 
@@ -263,15 +263,25 @@ Axiom maintains a strict separation of concerns:
 
 ---
 
-## 3. Hot-Path Optimization Rules
+## 3. Performance Claims & Scope
 
-To guarantee low latency during high-player combat encounters (e.g. 50+ hitboxes active simultaneously on 60 FPS servers), Axiom applies strict internal optimization rules:
+Axiom's performance characteristics are primarily derived from reducing repeated framework-side work and allocations. The framework reuses query configuration, pooled hitbox state, internal buffers where applicable, and cached hierarchy information in performance-sensitive paths.
 
-### A. Zero-Allocation `OverlapParams`
-In standard Roblox code, calling `OverlapParams.new()` every frame allocates heap memory and triggers Garbage Collection (GC) spikes. Axiom allocates internal `_activeOverlap` buffers once and mutates properties in-place per activation.
+These techniques reduce framework-side allocation and repeated computation during sustained workloads. However, the execution cost of Roblox engine operations, including spatial queries, depends on factors such as world complexity, part count, query geometry, target count, and server workload.
 
-### B. Fast-Path Ancestry Checks
-When `workspace:GetPartBoundsInBox` returns hit parts, traversing ancestry with `FindFirstAncestorOfClass("Model")` is expensive. Axiom checks `part.Parent` fast-path first:
+Axiom therefore does not guarantee a fixed execution time such as "sub-millisecond" across all workloads.
+
+---
+
+## 4. Architectural Design & Overhead Reduction
+
+To reduce framework-side memory allocation churn and engine query overhead during multi-target combat encounters, Axiom incorporates specific structural optimizations based on Luau and Roblox engine characteristics:
+
+### A. OverlapParams Reuse
+Creating and configuring `OverlapParams` instances on every query iteration allocates engine objects on the heap. Axiom creates and configures `OverlapParams` outside the repeated query path and reuses the instance (`_activeOverlap`) across queries, avoiding repeated construction of framework-owned query configuration.
+
+### B. Fast-Path Parent Hierarchy Checks
+When spatial queries return target `BasePart` instances, recursively traversing tree hierarchy using `FindFirstAncestorOfClass("Model")` can add unnecessary tree search overhead for standard character rig layouts. Axiom evaluates `part.Parent` first as a fast-path:
 
 ```lua
 -- Internal Axiom optimization snippet
@@ -281,11 +291,11 @@ if parent and self._hit[parent] then
 end
 ```
 
-### C. Weak Humanoid Caching
-Each `Hitbox` instance maintains a weak-keyed `_humCache` metatable (`__mode = "k"`). Once a `Humanoid` reference is discovered for a target `Model`, subsequent lookups operate in $O(1)$ time without child searching.
+### C. Weak-Keyed Hierarchy Cache
+The weak-keyed cache (`_humCache`) stores previously resolved hierarchy information, avoiding repeated `FindFirstAncestorOfClass("Model")` or child searches for parts that have already been resolved within the same attack window, while allowing entries to become collectible when their keys are no longer referenced.
 
-### D. $O(1)$ Pool Management
-The internal `Pool.luau` tracks active and available instances using an integer counter (`_inUseCount`), avoiding table iterations during allocation or release.
+### D. Object Pool State Recycling
+Hitbox instances are retained in an internal pool (`_POOL`) and reused across activations, avoiding repeated construction of hitbox state and table instances during frequent combat actions.
 
 --------------------------------------------------------------------------------
 ## Page: Hitbox Lifecycle (concepts/lifecycle.md)
@@ -718,10 +728,10 @@ local Hitbox = require(Axiom.Hitbox)
 ```lua
 function Hitbox.new(): Hitbox
 ```
-Acquires a `Hitbox` instance from the internal $O(1)$ adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
+Acquires a `Hitbox` instance from the internal adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
 
 - **Returns**: `Hitbox`
-- **Performance**: $O(1)$ constant time lookup. Pre-warms 30 instances on require.
+- **Pool Allocation**: Retrieves a pre-instantiated Hitbox from the object pool. Pre-warms 30 instances on initial require to reduce allocation spikes during initial use.
 
 ---
 
@@ -844,7 +854,7 @@ Returns `true` if current state is `"Active"`.
 
 # Signal API Reference
 
-`Signal` is a lightweight, synchronous, zero-allocation event primitive used throughout Axiom Core and Hitbox.
+`Signal` is a lightweight, synchronous event primitive used throughout Axiom Core and Hitbox.
 
 ```lua
 local Signal = require(Axiom.Core.Signal)
@@ -885,7 +895,7 @@ Connects a callback handler that automatically disconnects itself after the firs
 ```lua
 function Signal:FireFast(...: any): ()
 ```
-Fires all connected handlers sequentially without error handling wrappers. Maximum speed for hot paths.
+Iterates directly over the callback array without additional protected-call (`pcall`) handling. This reduces framework-side dispatch overhead, with the caller responsible for exception handling where applicable.
 
 ---
 
@@ -909,7 +919,7 @@ Returns `true` if any active callbacks are currently connected.
 ```lua
 function Signal:DisconnectAllFast(): ()
 ```
-Clears all connected handlers instantly in $O(1)$ time.
+Iterates directly over the handler array to clear all active connections without individual connection teardown logic.
 
 ---
 
@@ -1382,14 +1392,14 @@ end
 
 # Object Pooling & Performance Best Practices
 
-Axiom Hitbox uses an internal adaptive object pool (`_POOL`) to maintain zero allocation pressure during combat.
+Axiom Hitbox uses an internal adaptive object pool (`_POOL`) to retain and reuse `Hitbox` state across activations, reducing transient table allocations and GC pressure during combat.
 
 ---
 
 ## 1. How the Adaptive Pool Works
 
 - **Warm Allocation**: On initial require, 30 `Hitbox` instances are pre-allocated.
-- **Constant Time ($O(1)$)**: `:acquire()` (`Hitbox.new()`) pops an instance from the array in $O(1)$ time. `:release()` (`hb:Destroy()`) resets state and pushes it back in $O(1)$ time.
+- **Instance Reuse**: `:acquire()` (`Hitbox.new()`) retrieves a retained instance from the pool array. `:release()` (`hb:Destroy()`) resets internal state and returns the instance to the pool array for reuse.
 - **Adaptive Shrinking**: If a server experiences a sudden spike (e.g. 200 hitboxes allocated), the pool temporarily expands. After 30 seconds of inactivity, an adaptive background thread shrinks excess instances back down to the baseline size of 20.
 
 ---
@@ -1458,7 +1468,7 @@ hb:Start()
 
 Thank you for your interest in contributing to **Axiom Hitbox Framework**!
 
-As low-level infrastructure for Roblox games, all contributions must preserve strict determinism, sub-millisecond execution times, zero-allocation hot paths, and full `--!strict` Luau type safety.
+As low-level infrastructure for Roblox games, all contributions must preserve strict determinism, low-allocation hot path design, and full `--!strict` Luau type safety.
 
 ---
 
@@ -1486,8 +1496,8 @@ As low-level infrastructure for Roblox games, all contributions must preserve st
 - **Strict Mode Mandatory**: Every `.luau` module must begin with `--!strict`.
 - **Explicit Type Annotations**: All functions, methods, and signal callbacks must include explicit type annotations.
 - **Explicit `self` Typing**: Method signatures must annotate `self` (`local self: Hitbox = self :: any`) to avoid Luau generic solver errors.
-- **Zero-Allocation Rule**: Do not construct `OverlapParams.new()` inside active detection loops. Mutate `_activeOverlap` in-place.
-- **Fast-Path Lookups**: Check `part.Parent` fast-path before executing `FindFirstAncestorOfClass("Model")`.
+- **Buffer Reuse Rule**: Avoid constructing `OverlapParams.new()` inside active detection loops. Mutate `_activeOverlap` in-place.
+- **Fast-Path Lookups**: Check `part.Parent` fast-path before executing deeper hierarchy searches.
 
 ---
 

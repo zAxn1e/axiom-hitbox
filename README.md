@@ -1,8 +1,8 @@
 # Axiom
 
-A lightweight, server-authoritative framework for Roblox game development, providing high-performance hitbox detection, synchronization primitives, and infrastructure utilities.
+A lightweight, server-authoritative framework for Roblox game development, providing spatial hitbox detection, synchronization primitives, and infrastructure utilities.
 
-Axiom focuses on **determinism, performance, and stability** for long-running Roblox servers.
+Axiom focuses on **determinism, structural efficiency, and stability** for long-running Roblox servers.
 
 📖 **Official Documentation Site**: [Axiom Hitbox Framework](https://zaxn1e.github.io/axiom-hitbox/)
 
@@ -26,7 +26,7 @@ Axiom does **not** include gameplay rules — it is infrastructure-first by desi
 
 - Server-authoritative hitbox system
 - Explicit lifecycle (`Start / Stop / Destroy`)
-- Adaptive object pooling & reuse ($O(1)$ operations)
+- Adaptive object pooling & state reuse
 - Spatial queries: **Box** (`GetPartBoundsInBox`) & **Sphere** (`GetPartBoundsInRadius`)
 - Channeling / Continuous hit support via `HitResetInterval`
 - Attachment, BasePart (dynamic), and CFrame tracking
@@ -36,7 +36,7 @@ Axiom does **not** include gameplay rules — it is infrastructure-first by desi
 - Coroutine-based Await synchronization
 - Token-based cancellation & timeouts
 - Character helpers with typed access and timeout protection
-- Designed for **zero-allocation hot paths & low GC pressure**
+- Designed with **reused spatial buffers and object pooling to reduce GC pressure**
 
 > Combat logic, damage systems, VFX, and gameplay orchestration are intentionally **not included**.
 
@@ -284,23 +284,24 @@ Best for:
 
 ✔ once per **humanoid model** per activation  
 ✔ ignores duplicate parts  
-✔ caches humanoids for performance  
+✔ uses weak-keyed hierarchy caching to avoid repeated model lookups  
 
 ---
 
 ## 📊 Pooling
 
-Hitbox uses adaptive pool:
+Hitbox retains instances in an internal pool:
 
-* pre-warms ~30 objects
-* idle shrink after 30s
-* constant-time acquire/release
+* pre-warms ~30 objects on initial require
+* idle shrink after 30s of inactivity
+* acquires/releases retained instances across activations
 
 Debug:
 
 ```lua
 print(Hitbox.GetPoolStats())
 ```
+
 
 ---
 

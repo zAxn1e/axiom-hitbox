@@ -1,11 +1,11 @@
 ---
 title: Architecture & Authority
-description: Deep dive into Axiom's server-authoritative combat design, lifecycle finite state machine, and zero-allocation hot path architecture.
+description: Deep dive into Axiom's server-authoritative combat design, lifecycle finite state machine, and framework-level allocation reduction architecture.
 ---
 
 # Architecture & Authority Model
 
-Axiom Hitbox is engineered as low-level, high-frequency infrastructure for competitive Roblox multiplayer games.
+Axiom Hitbox is engineered as low-level infrastructure for server-authoritative Roblox multiplayer games.
 
 Understanding the architectural boundaries and server authority model is critical for designing scalable combat systems.
 
@@ -69,15 +69,25 @@ Axiom maintains a strict separation of concerns:
 
 ---
 
-## 3. Hot-Path Optimization Rules
+## 3. Performance Claims & Scope
 
-To guarantee low latency during high-player combat encounters (e.g. 50+ hitboxes active simultaneously on 60 FPS servers), Axiom applies strict internal optimization rules:
+Axiom's performance characteristics are primarily derived from reducing repeated framework-side work and allocations. The framework reuses query configuration, pooled hitbox state, internal buffers where applicable, and cached hierarchy information in performance-sensitive paths.
 
-### A. Zero-Allocation `OverlapParams`
-In standard Roblox code, calling `OverlapParams.new()` every frame allocates heap memory and triggers Garbage Collection (GC) spikes. Axiom allocates internal `_activeOverlap` buffers once and mutates properties in-place per activation.
+These techniques reduce framework-side allocation and repeated computation during sustained workloads. However, the execution cost of Roblox engine operations, including spatial queries, depends on factors such as world complexity, part count, query geometry, target count, and server workload.
 
-### B. Fast-Path Ancestry Checks
-When `workspace:GetPartBoundsInBox` returns hit parts, traversing ancestry with `FindFirstAncestorOfClass("Model")` is expensive. Axiom checks `part.Parent` fast-path first:
+Axiom therefore does not guarantee a fixed execution time such as "sub-millisecond" across all workloads.
+
+---
+
+## 4. Architectural Design & Overhead Reduction
+
+To reduce framework-side memory allocation churn and engine query overhead during multi-target combat encounters, Axiom incorporates specific structural optimizations based on Luau and Roblox engine characteristics:
+
+### A. OverlapParams Reuse
+Creating and configuring `OverlapParams` instances on every query iteration allocates engine objects on the heap. Axiom creates and configures `OverlapParams` outside the repeated query path and reuses the instance (`_activeOverlap`) across queries, avoiding repeated construction of framework-owned query configuration.
+
+### B. Fast-Path Parent Hierarchy Checks
+When spatial queries return target `BasePart` instances, recursively traversing tree hierarchy using `FindFirstAncestorOfClass("Model")` can add unnecessary tree search overhead for standard character rig layouts. Axiom evaluates `part.Parent` first as a fast-path:
 
 ```lua
 -- Internal Axiom optimization snippet
@@ -87,8 +97,9 @@ if parent and self._hit[parent] then
 end
 ```
 
-### C. Weak Humanoid Caching
-Each `Hitbox` instance maintains a weak-keyed `_humCache` metatable (`__mode = "k"`). Once a `Humanoid` reference is discovered for a target `Model`, subsequent lookups operate in $O(1)$ time without child searching.
+### C. Weak-Keyed Hierarchy Cache
+The weak-keyed cache (`_humCache`) stores previously resolved hierarchy information, avoiding repeated `FindFirstAncestorOfClass("Model")` or child searches for parts that have already been resolved within the same attack window, while allowing entries to become collectible when their keys are no longer referenced.
 
-### D. $O(1)$ Pool Management
-The internal `Pool.luau` tracks active and available instances using an integer counter (`_inUseCount`), avoiding table iterations during allocation or release.
+### D. Object Pool State Recycling
+Hitbox instances are retained in an internal pool (`_POOL`) and reused across activations, avoiding repeated construction of hitbox state and table instances during frequent combat actions.
+

@@ -1,7 +1,7 @@
 --!strict
 -- Axiom Performance & Benchmark Test Suite
 -- Module: HitboxPerformanceTest
--- Purpose: Detailed empirical benchmarks for allocation pressure, spatial query throughput, fast-path hit lookup, and pool O(1) performance.
+-- Purpose: Detailed empirical benchmarks for allocation pressure, spatial query throughput, fast-path hit lookup, and pool performance.
 -- Version: 1.4.0
 
 local Axiom = script.Parent.Parent
@@ -27,7 +27,7 @@ function HitboxPerformanceTest.RunAllBenchmarks()
 	end
 
 	-- ----------------------------------------------------
-	-- BENCHMARK 1: OverlapParams Zero-Allocation Pressure
+	-- BENCHMARK 1: OverlapParams In-Place Reuse & Lifecycle
 	-- ----------------------------------------------------
 	do
 		print("\n📊 Benchmark 1: OverlapParams Allocation & Start/Stop Lifecycle")
@@ -124,10 +124,10 @@ function HitboxPerformanceTest.RunAllBenchmarks()
 	end
 
 	-- ----------------------------------------------------
-	-- BENCHMARK 4: O(1) Object Pool Acquisition & Stats
+	-- BENCHMARK 4: Object Pool Acquisition & Stats
 	-- ----------------------------------------------------
 	do
-		print("\n📊 Benchmark 4: Pool O(1) Acquire, Release & Stats Overhead")
+		print("\n📊 Benchmark 4: Pool Acquire, Release & Stats Overhead")
 		local ACQUIRE_CYCLES = 20000
 		local STATS_CYCLES = 100000
 

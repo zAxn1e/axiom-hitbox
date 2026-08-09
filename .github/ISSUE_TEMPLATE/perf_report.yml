@@ -6,8 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        ### ⚡ Help us keep Axiom ultra-fast!
-        Axiom is built for high-frequency performance. If you notice any unexpected memory churn, frame drops, or micro-stuttering, please let us know!
+        ### ⚡ Help us maintain Axiom's performance!
+        Axiom is built for low-overhead, server-authoritative execution. If you notice any unexpected memory churn, frame drops, or micro-stuttering, please let us know!
 
   - type: dropdown
     id: component

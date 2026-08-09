@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to **Axiom Hitbox Framework**!
 
-As low-level infrastructure for Roblox games, all contributions must preserve strict determinism, sub-millisecond execution times, zero-allocation hot paths, and full `--!strict` Luau type safety.
+As low-level infrastructure for Roblox games, all contributions must preserve strict determinism, low-allocation hot path design, and full `--!strict` Luau type safety.
 
 ---
 
@@ -30,8 +30,8 @@ As low-level infrastructure for Roblox games, all contributions must preserve st
 - **Strict Mode Mandatory**: Every `.luau` module must begin with `--!strict`.
 - **Explicit Type Annotations**: All functions, methods, and signal callbacks must include explicit type annotations.
 - **Explicit `self` Typing**: Method signatures must annotate `self` (`local self: Hitbox = self :: any`) to avoid Luau generic solver errors.
-- **Zero-Allocation Rule**: Do not construct `OverlapParams.new()` inside active detection loops. Mutate `_activeOverlap` in-place.
-- **Fast-Path Lookups**: Check `part.Parent` fast-path before executing `FindFirstAncestorOfClass("Model")`.
+- **Buffer Reuse Rule**: Avoid constructing `OverlapParams.new()` inside active detection loops. Mutate `_activeOverlap` in-place.
+- **Fast-Path Lookups**: Check `part.Parent` fast-path before executing deeper hierarchy searches.
 
 ---
 

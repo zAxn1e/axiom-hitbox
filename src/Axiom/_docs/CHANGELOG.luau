@@ -150,9 +150,9 @@
 	- Automated unit test suite under `Axiom._tests.HitboxTest`
 
 	Improved:
-	- **Zero-Allocation OverlapParams**: Reused and mutated internal `_activeOverlap` in-place per `:Start()`, reducing memory allocation rate by ~95%
-	- **Fast-Path Ancestry Lookup**: `part.Parent` fast-check before ancestor traversal in `_update()`, reducing CPU time by 30-50% on multi-part models
-	- **$O(1)$ Pool Tracking**: Upgraded HitboxPool to use integer `_inUseCount` counter instead of hash table iterations
+	- **In-Place OverlapParams Reuse**: Reused and mutated internal `_activeOverlap` in-place per `:Start()`, avoiding repeated OverlapParams construction
+	- **Fast-Path Ancestry Lookup**: `part.Parent` fast-check before ancestor traversal in `_update()`, reducing CPU time on multi-part models
+	- **Integer Pool Tracking**: Upgraded HitboxPool to use integer `_inUseCount` counter instead of hash table iterations
 	- **Visualizer Part Pooling**: Visualizer Part is now kept pooled on Hitbox instances instead of constant `Instance.new`/`:Destroy()` churn
 	- **Scheduler Lag Drain**: `TimerScheduler` uses capped `while` loop to drain accumulated lag delta without timer drift
 

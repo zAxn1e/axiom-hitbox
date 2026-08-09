@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Axiom Hitbox
   text: Server-Authoritative Roblox Hitbox & Infrastructure Framework
-  tagline: High-performance spatial detection, explicit lifecycle control, adaptive pooling, and zero-allocation hot paths for scalable Roblox experiences.
+  tagline: Server-authoritative spatial detection, explicit lifecycle control, adaptive object pooling, and low-allocation hot path design.
   image:
     src: /axiom-big.svg
     alt: Axiom Hitbox Logo
@@ -24,8 +24,8 @@ features:
     title: Server-Authoritative Combat
     details: Built specifically for secure, server-validated spatial detection. Client prediction support with zero client authority over damage.
   - icon: ⚡
-    title: Zero-Allocation Hot Paths
-    details: Pre-allocated spatial parameters, reused OverlapParams buffers, pooled visualizers, and fast-path model lookups for sub-millisecond execution.
+    title: Low-Allocation Hot Paths
+    details: Reused OverlapParams buffers, object pooling, and fast-path model lookups designed to reduce framework-side memory allocation and GC pressure.
   - icon: 🎯
     title: Dual Geometries (Box & Sphere)
     details: Native support for Box (GetPartBoundsInBox) and Sphere (GetPartBoundsInRadius) spatial queries with dynamic CFrame, BasePart, and Attachment tracking.
@@ -46,7 +46,7 @@ features:
 local Axiom = game.ReplicatedStorage:WaitForChild("Axiom")
 local Hitbox = require(Axiom.Hitbox)
 
--- Acquire pooled instance (O(1) allocation)
+-- Acquire retained instance from internal pool
 local hb = Hitbox.new()
 hb.Shape = "Box"
 hb.Size = Vector3.new(6, 6, 6)

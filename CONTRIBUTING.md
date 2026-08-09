@@ -22,7 +22,7 @@ This document defines the **rules, boundaries, and design principles** for contr
 This framework is designed as **low-level infrastructure**.  
 All contributions must preserve:
 
-- High-frequency performance & zero-allocation hot paths
+- Structural efficiency & low-allocation hot path design
 - Determinism
 - Strict Luau type safety (`--!strict`)
 - Strict separation of responsibilities
@@ -39,7 +39,7 @@ All contributions must preserve:
 - Continuous attack interval management (`HitResetInterval` for channeling, spin, and laser attacks)
 - Target velocity prediction (`Linear`, `Angular`, `LinearAngular`)
 - Deterministic, exception-safe hit reporting (`OnHit`, `OnStart`, `OnStop`, `OnUpdate`)
-- Memory-stable, zero-allocation pooling for long-running servers
+- Memory-stable object pooling for long-running servers
 - Infrastructure-level timing (`Timer`) and coroutine synchronization (`Await`) primitives
 
 ### The framework **is NOT responsible for**:
@@ -61,8 +61,8 @@ All contributions **must** adhere to the following principles:
 - Infrastructure over gameplay
 - Determinism over convenience
 - Explicit orchestration over implicit behavior
-- Performance over flexibility
-- Zero-allocation hot paths over dynamic table creation
+- Predictability and stability over unnecessary complexity
+- In-place buffer reuse over dynamic table allocation
 - Clear ownership of responsibility
 
 If execution order, timing coordination, or game rules are required, they must live **outside** the Hitbox framework.
@@ -95,18 +95,18 @@ Internal modules are implementation details and must **not** be exposed as publi
 
 ---
 
-## Performance Rules
+## Optimization Guidelines
 
 The Hitbox framework is designed for **hot paths**.
 
 Contributors **MUST** follow these rules:
 
 - **No yielding in hot paths:** No `task.wait()`, `wait()`, or `:Wait()` inside detection loops.
-- **Zero-Allocation Hot Paths:** No `OverlapParams.new()` allocation on `:Start()`; mutate pre-allocated `_activeOverlap` buffers in-place.
-- **Fast-Path Lookups:** Utilize `part.Parent` fast-path checks before calling `FindFirstAncestorOfClass("Model")`.
-- **No per-frame table allocation:** Table clear and reuse existing arrays/maps.
+- **In-Place Buffer Reuse:** Avoid `OverlapParams.new()` allocations on `:Start()`; mutate pre-allocated `_activeOverlap` buffers in-place.
+- **Fast-Path Hierarchy Lookups:** Utilize `part.Parent` fast-path checks before invoking deeper tree searches.
+- **No per-frame table allocation:** Clear and reuse existing arrays and maps.
 - **No Roblox `Instance` creation inside active detection loops:** Keep debug visualizer parts pooled on the Hitbox instance.
-- **$O(1)$ Pool Operations:** Keep pool size and stats tracking $O(1)$ without table iterations.
+- **Object Pool State Recycling:** Retain Hitbox instances in internal pools and reuse state across activations.
 
 ---
 

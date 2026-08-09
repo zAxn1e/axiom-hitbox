@@ -19,10 +19,10 @@ local Hitbox = require(Axiom.Hitbox)
 ```lua
 function Hitbox.new(): Hitbox
 ```
-Acquires a `Hitbox` instance from the internal $O(1)$ adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
+Acquires a `Hitbox` instance from the internal adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
 
 - **Returns**: `Hitbox`
-- **Performance**: $O(1)$ constant time lookup. Pre-warms 30 instances on require.
+- **Pool Allocation**: Retrieves a pre-instantiated Hitbox from the object pool. Pre-warms 30 instances on initial require to reduce allocation spikes during initial use.
 
 ---
 

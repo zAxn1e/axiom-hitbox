@@ -1,6 +1,6 @@
 # Signal API Reference
 
-`Signal` is a lightweight, synchronous, zero-allocation event primitive used throughout Axiom Core and Hitbox.
+`Signal` is a lightweight, synchronous event primitive used throughout Axiom Core and Hitbox.
 
 ```lua
 local Signal = require(Axiom.Core.Signal)
@@ -41,7 +41,7 @@ Connects a callback handler that automatically disconnects itself after the firs
 ```lua
 function Signal:FireFast(...: any): ()
 ```
-Fires all connected handlers sequentially without error handling wrappers. Maximum speed for hot paths.
+Iterates directly over the callback array without additional protected-call (`pcall`) handling. This reduces framework-side dispatch overhead, with the caller responsible for exception handling where applicable.
 
 ---
 
@@ -65,7 +65,7 @@ Returns `true` if any active callbacks are currently connected.
 ```lua
 function Signal:DisconnectAllFast(): ()
 ```
-Clears all connected handlers instantly in $O(1)$ time.
+Iterates directly over the handler array to clear all active connections without individual connection teardown logic.
 
 ---
 

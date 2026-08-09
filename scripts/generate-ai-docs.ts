@@ -17,7 +17,7 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
 const VERSION = pkg.version || '1.4.0';
 const PROJECT_NAME = 'Axiom Hitbox Framework';
-const PROJECT_DESC = pkg.description || 'High-performance, server-authoritative Roblox hitbox and synchronization framework';
+const PROJECT_DESC = pkg.description || 'Server-authoritative, low-overhead Roblox spatial hitbox and synchronization framework';
 const BASE_URL = 'https://zAxn1e.github.io/axiom-hitbox';
 
 // Section & File Hierarchy matching VitePress config
@@ -152,7 +152,7 @@ const SECTIONS: DocSection[] = [
         title: 'Pooling & Performance',
         file: 'guides/pooling-performance.md',
         link: '/guides/pooling-performance',
-        description: 'Zero-allocation hot paths and object recycling best practices.'
+        description: 'Object recycling and framework-level allocation reduction best practices.'
       },
       {
         title: 'Debug Visualizer',
@@ -293,13 +293,13 @@ function generateAiMd(): string {
   out += `---\n\n`;
 
   out += `## 1. Project Overview\n\n`;
-  out += `Axiom Hitbox is a server-authoritative, zero-allocation spatial query framework for Roblox Luau.\n`;
+  out += `Axiom Hitbox is a server-authoritative spatial query framework for Roblox Luau.\n`;
   out += `It decouples infrastructure primitives (spatial detection, timing, cancellation, object pooling) from gameplay rules (damage, combos, VFX, cooldowns).\n\n`;
 
   out += `### Key Architecture Rules\n`;
   out += `- **Server Authority**: Spatial detection and damage calculation MUST run on the server. Clients must never calculate or transmit hit target arrays over \`RemoteEvent\`s.\n`;
   out += `- **Strict Type Safety**: All scripts using Axiom should enforce \`--!strict\` Luau mode.\n`;
-  out += `- **Memory Stability**: Uses an internal O(1) adaptive object pool (\`Hitbox.new()\`) with pre-allocated \`OverlapParams\` to achieve zero GC pressure during combat.\n\n`;
+  out += `- **Allocation Reduction**: Retains pre-instantiated Hitbox objects in an adaptive pool (\`Hitbox.new()\`) and reuses \`OverlapParams\` instances to reduce framework-side memory allocation and GC pressure during combat.\n\n`;
 
   out += `---\n\n`;
 

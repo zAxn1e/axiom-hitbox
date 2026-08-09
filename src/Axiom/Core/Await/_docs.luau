@@ -38,7 +38,7 @@
 	- Predictable scheduling semantics
 	- Structured cooperative cancellation
 	- Deterministic resource cleanup
-	- Zero-allocation wherever possible
+	- Low-allocation design wherever possible
 
 	----------------------------------------------------
 	2. Design Philosophy

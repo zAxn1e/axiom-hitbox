@@ -6,7 +6,7 @@ const base = process.env.GITHUB_ACTIONS ? '/axiom-hitbox/' : '/'
 export default withMermaid(
   defineConfig({
     title: 'Axiom Hitbox Framework',
-    description: 'High-performance, server-authoritative Roblox hitbox and synchronization framework',
+    description: 'Server-authoritative, low-overhead Roblox spatial hitbox and synchronization framework',
     base: base,
     cleanUrls: true,
     lastUpdated: true,
@@ -49,7 +49,7 @@ export default withMermaid(
       const ogImageUrl = `${hostname}/logo.svg`
       
       const pageTitle = pageData.title ? `${pageData.title} | Axiom Hitbox` : 'Axiom Hitbox Framework'
-      const pageDesc = pageData.description || pageData.frontmatter?.description || 'High-performance, server-authoritative Roblox hitbox and synchronization framework'
+      const pageDesc = pageData.description || pageData.frontmatter?.description || 'Server-authoritative, low-overhead Roblox spatial hitbox and synchronization framework'
 
       const headElements: any[] = [
         ['link', { rel: 'canonical', href: canonicalUrl }],

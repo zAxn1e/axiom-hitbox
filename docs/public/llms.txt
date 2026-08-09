@@ -31,7 +31,7 @@ Version: 1.4.0
 - [Melee Combat System](https://zAxn1e.github.io/axiom-hitbox/guides/melee-combat): Building production-ready melee combos and hit detection.
 - [Radial & Explosion AoE](https://zAxn1e.github.io/axiom-hitbox/guides/aoe-abilities): Spherical area-of-effect abilities and shockwave hitboxes.
 - [Channeling & Auras](https://zAxn1e.github.io/axiom-hitbox/guides/channeling-auras): Persistent damage-over-time and aura fields.
-- [Pooling & Performance](https://zAxn1e.github.io/axiom-hitbox/guides/pooling-performance): Zero-allocation hot paths and object recycling best practices.
+- [Pooling & Performance](https://zAxn1e.github.io/axiom-hitbox/guides/pooling-performance): Object recycling and framework-level allocation reduction best practices.
 - [Debug Visualizer](https://zAxn1e.github.io/axiom-hitbox/guides/debugging-visualizer): In-game visualizer parts for hitboxes during debugging.
 
 ## Development & Contributing
