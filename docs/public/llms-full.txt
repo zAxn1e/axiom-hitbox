@@ -1182,7 +1182,7 @@ export type StateMachine = {
 ## Page: Melee Combat System (guides/melee-combat.md)
 --------------------------------------------------------------------------------
 
-# Building a Melee Combat System
+# Melee Combat System Guide
 
 This guide demonstrates how to construct a robust, server-authoritative 3-hit combo melee combat system using Axiom Hitbox and Axiom Core primitives.
 

@@ -16,15 +16,108 @@ export default withMermaid(
       theme: 'dark'
     },
 
+    sitemap: {
+      hostname: 'https://zaxn1e.github.io/axiom-hitbox/'
+    },
+
     head: [
       ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}logo.svg` }],
       ['link', { rel: 'alternate icon', type: 'image/png', href: `${base}logo.svg` }],
       ['meta', { name: 'theme-color', content: '#10b981' }],
-      ['meta', { name: 'og:type', content: 'website' }],
-      ['meta', { name: 'og:site_name', content: 'Axiom Hitbox Framework' }],
-      ['meta', { name: 'og:title', content: 'Axiom Hitbox Framework' }],
-      ['meta', { name: 'og:description', content: 'High-performance, server-authoritative Roblox hitbox and synchronization framework' }]
+      ['meta', { name: 'author', content: 'Iv_0x' }],
+      ['meta', { name: 'keywords', content: 'Roblox, Luau, Hitbox, Combat System, Spatial Query, Server-Authoritative, Game Development, Roblox Studio' }],
+      ['link', { rel: 'alternate', type: 'text/plain', title: 'AI Documentation Specification', href: `${base}ai.txt` }],
+      ['link', { rel: 'alternate', type: 'text/plain', title: 'LLMs Context Index', href: `${base}llms.txt` }]
     ],
+
+    transformHead({ pageData }) {
+      const hostname = 'https://zaxn1e.github.io/axiom-hitbox'
+      
+      let pagePath = pageData.relativePath
+        .replace(/index\.md$/, '')
+        .replace(/\.md$/, '')
+      
+      if (pagePath && !pagePath.startsWith('/')) {
+        pagePath = '/' + pagePath
+      }
+      if (!pagePath || pagePath === '/index') {
+        pagePath = '/'
+      }
+
+      const canonicalUrl = `${hostname}${pagePath}`
+      const ogImageUrl = `${hostname}/logo.svg`
+      
+      const pageTitle = pageData.title ? `${pageData.title} | Axiom Hitbox` : 'Axiom Hitbox Framework'
+      const pageDesc = pageData.description || pageData.frontmatter?.description || 'High-performance, server-authoritative Roblox hitbox and synchronization framework'
+
+      const headElements: any[] = [
+        ['link', { rel: 'canonical', href: canonicalUrl }],
+        ['meta', { property: 'og:type', content: pageData.relativePath === 'index.md' ? 'website' : 'article' }],
+        ['meta', { property: 'og:site_name', content: 'Axiom Hitbox Framework' }],
+        ['meta', { property: 'og:title', content: pageTitle }],
+        ['meta', { property: 'og:description', content: pageDesc }],
+        ['meta', { property: 'og:url', content: canonicalUrl }],
+        ['meta', { property: 'og:image', content: ogImageUrl }],
+        ['meta', { property: 'og:image:alt', content: 'Axiom Hitbox Framework Logo' }],
+        ['meta', { name: 'twitter:card', content: 'summary' }],
+        ['meta', { name: 'twitter:title', content: pageTitle }],
+        ['meta', { name: 'twitter:description', content: pageDesc }],
+        ['meta', { name: 'twitter:image', content: ogImageUrl }]
+      ]
+
+      if (pageData.relativePath === 'index.md') {
+        const websiteSchema = {
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          'name': 'Axiom Hitbox Framework',
+          'operatingSystem': 'Roblox Platform',
+          'applicationCategory': 'DeveloperApplication',
+          'description': pageDesc,
+          'url': hostname,
+          'author': {
+            '@type': 'Organization',
+            'name': 'Iv_0x'
+          },
+          'offers': {
+            '@type': 'Offer',
+            'price': '0',
+            'priceCurrency': 'USD'
+          }
+        }
+        headElements.push([
+          'script',
+          { type: 'application/ld+json' },
+          JSON.stringify(websiteSchema)
+        ])
+      } else {
+        const techArticleSchema = {
+          '@context': 'https://schema.org',
+          '@type': 'TechArticle',
+          'headline': pageData.title || 'Axiom Hitbox Documentation',
+          'description': pageDesc,
+          'url': canonicalUrl,
+          'mainEntityOfPage': {
+            '@type': 'WebPage',
+            '@id': canonicalUrl
+          },
+          'author': {
+            '@type': 'Organization',
+            'name': 'Iv_0x'
+          },
+          'publisher': {
+            '@type': 'Organization',
+            'name': 'Axiom Hitbox Framework'
+          }
+        }
+        headElements.push([
+          'script',
+          { type: 'application/ld+json' },
+          JSON.stringify(techArticleSchema)
+        ])
+      }
+
+      return headElements
+    },
 
     themeConfig: {
       logo: '/logo.svg',

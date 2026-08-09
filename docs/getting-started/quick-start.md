@@ -1,3 +1,8 @@
+---
+title: Quick Start Guide
+description: Build your first server-authoritative melee hitbox in Roblox Studio with zero-allocation pooling and dynamic tracking.
+---
+
 # Quick Start Guide
 
 This guide will walk you through creating your first server-authoritative melee hitbox using Axiom Hitbox Framework v1.4.0.

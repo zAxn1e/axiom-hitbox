@@ -1,3 +1,8 @@
+---
+title: Installation Guide
+description: Step-by-step guide to installing Axiom Hitbox Framework via Roblox Creator Store or GitHub packaged releases.
+---
+
 # Installation Guide
 
 Axiom Hitbox Framework is distributed exclusively via **packaged builds** to guarantee stability and prevent incomplete runtime imports.

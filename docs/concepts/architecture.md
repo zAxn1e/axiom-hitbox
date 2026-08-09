@@ -1,3 +1,8 @@
+---
+title: Architecture & Authority
+description: Deep dive into Axiom's server-authoritative combat design, lifecycle finite state machine, and zero-allocation hot path architecture.
+---
+
 # Architecture & Authority Model
 
 Axiom Hitbox is engineered as low-level, high-frequency infrastructure for competitive Roblox multiplayer games.

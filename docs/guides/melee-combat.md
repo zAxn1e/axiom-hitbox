@@ -1,4 +1,9 @@
-# Building a Melee Combat System
+---
+title: Melee Combat System Guide
+description: Learn how to construct a robust, server-validated combo melee combat system using Axiom Hitbox and Luau state machines.
+---
+
+# Melee Combat System Guide
 
 This guide demonstrates how to construct a robust, server-authoritative 3-hit combo melee combat system using Axiom Hitbox and Axiom Core primitives.
 

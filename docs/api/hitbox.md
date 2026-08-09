@@ -1,3 +1,8 @@
+---
+title: Hitbox Class API
+description: Complete API reference for Axiom's core Hitbox class - methods, properties, signals, and spatial query options.
+---
+
 # Hitbox Class API Reference
 
 The `Hitbox` class is the primary public API surface of the Axiom Hitbox Framework.
