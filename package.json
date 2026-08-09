@@ -5,8 +5,9 @@
   "private": true,
   "description": "Production-grade documentation for Axiom Hitbox Framework",
   "scripts": {
+    "docs:ai": "bun scripts/generate-ai-docs.ts",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
+    "docs:build": "bun run docs:ai && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {

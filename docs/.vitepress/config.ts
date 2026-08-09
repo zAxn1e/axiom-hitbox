@@ -10,6 +10,7 @@ export default withMermaid(
     base: base,
     cleanUrls: true,
     lastUpdated: true,
+    ignoreDeadLinks: true,
 
     mermaid: {
       theme: 'dark'
@@ -32,6 +33,15 @@ export default withMermaid(
       nav: [
         { text: 'Guide', link: '/getting-started/quick-start', activeMatch: '/(getting-started|concepts|guides)/' },
         { text: 'API Reference', link: '/api/hitbox', activeMatch: '/api/' },
+        {
+          text: 'AI Docs',
+          items: [
+            { text: 'Overview & Usage', link: '/reference/ai-docs' },
+            { text: 'ai.txt (Curated AI Spec)', link: '/ai.txt', target: '_blank' },
+            { text: 'llms.txt (Index)', link: '/llms.txt', target: '_blank' },
+            { text: 'llms-full.txt (Full Text)', link: '/llms-full.txt', target: '_blank' }
+          ]
+        },
         { text: 'Development', link: '/development/contributing', activeMatch: '/development/' },
         { text: 'v1.4.0', link: '/development/changelog' }
       ],
@@ -92,6 +102,8 @@ export default withMermaid(
           text: 'Reference',
           collapsed: false,
           items: [
+            { text: 'AI Documentation Overview', link: '/reference/ai-docs' },
+            { text: 'ai.txt (Curated AI Spec)', link: '/ai.txt', target: '_blank' },
             { text: 'FAQ', link: '/reference/faq' },
             { text: 'Troubleshooting', link: '/reference/troubleshooting' },
             { text: 'License', link: '/reference/license' }

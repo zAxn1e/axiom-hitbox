@@ -1,0 +1,53 @@
+# Axiom Hitbox Framework
+
+> Production-grade documentation for Axiom Hitbox Framework
+
+Version: 1.4.0
+
+## Getting Started
+
+- [Installation](https://zAxn1e.github.io/axiom-hitbox/getting-started/installation): Installation options via Creator Store, GitHub Releases, and Wally package manager.
+- [Quick Start](https://zAxn1e.github.io/axiom-hitbox/getting-started/quick-start): Step-by-step guide to creating your first server-authoritative melee hitbox.
+
+## Core Concepts
+
+- [Architecture & Authority](https://zAxn1e.github.io/axiom-hitbox/concepts/architecture): Server authority model and separation of infrastructure vs gameplay boundaries.
+- [Hitbox Lifecycle](https://zAxn1e.github.io/axiom-hitbox/concepts/lifecycle): Finite state machine transitions (Idle, Active, Stopped, Cooldown) and object pooling.
+- [Spatial Queries (Box & Sphere)](https://zAxn1e.github.io/axiom-hitbox/concepts/spatial-detection): Box and Sphere spatial detection algorithms and dynamic CFrame tracking.
+- [Velocity Prediction](https://zAxn1e.github.io/axiom-hitbox/concepts/prediction): Linear, Angular, and LinearAngular velocity extrapolation to eliminate ping whiffs.
+- [Continuous Attacks](https://zAxn1e.github.io/axiom-hitbox/concepts/continuous-attacks): HitResetInterval for continuous damage, channeling skills, lasers, and persistent auras.
+
+## API Reference
+
+- [Hitbox API](https://zAxn1e.github.io/axiom-hitbox/api/hitbox): Constructor, properties, signals, lifecycle methods, and state queries for Hitbox class.
+- [Signal API](https://zAxn1e.github.io/axiom-hitbox/api/signal): Lightweight synchronous event primitive with FireFast and FireSafe dispatch.
+- [Timer API](https://zAxn1e.github.io/axiom-hitbox/api/timer): Temporal infrastructure primitive backed by Scheduler.
+- [Await Synchronization API](https://zAxn1e.github.io/axiom-hitbox/api/await): Coroutine synchronization, cancellation tokens, barriers, mutexes, and retry utilities.
+- [CharacterService API](https://zAxn1e.github.io/axiom-hitbox/api/character-service): Type-safe LocalPlayer character and component access getters and signals.
+- [Shared Types](https://zAxn1e.github.io/axiom-hitbox/api/types): Exported Luau type definitions for strict type checking.
+
+## Guides & Patterns
+
+- [Melee Combat System](https://zAxn1e.github.io/axiom-hitbox/guides/melee-combat): Building production-ready melee combos and hit detection.
+- [Radial & Explosion AoE](https://zAxn1e.github.io/axiom-hitbox/guides/aoe-abilities): Spherical area-of-effect abilities and shockwave hitboxes.
+- [Channeling & Auras](https://zAxn1e.github.io/axiom-hitbox/guides/channeling-auras): Persistent damage-over-time and aura fields.
+- [Pooling & Performance](https://zAxn1e.github.io/axiom-hitbox/guides/pooling-performance): Zero-allocation hot paths and object recycling best practices.
+- [Debug Visualizer](https://zAxn1e.github.io/axiom-hitbox/guides/debugging-visualizer): In-game visualizer parts for hitboxes during debugging.
+
+## Development & Contributing
+
+- [Contributing Guidelines](https://zAxn1e.github.io/axiom-hitbox/development/contributing): Development setup and coding guidelines.
+- [Automated Testing Suite](https://zAxn1e.github.io/axiom-hitbox/development/testing): TestEZ test runner and unit test execution.
+- [Changelog](https://zAxn1e.github.io/axiom-hitbox/development/changelog): Version release notes and changes.
+
+## Reference
+
+- [AI Documentation Layer](https://zAxn1e.github.io/axiom-hitbox/reference/ai-docs): Overview of static AI-readable documentation files (llms.txt, ai.md, llms-full.txt) and usage instructions.
+- [FAQ](https://zAxn1e.github.io/axiom-hitbox/reference/faq): Frequently asked questions.
+- [Troubleshooting](https://zAxn1e.github.io/axiom-hitbox/reference/troubleshooting): Common issues and resolution steps.
+- [License](https://zAxn1e.github.io/axiom-hitbox/reference/license): MIT License details.
+
+## AI Documentation
+
+- [Curated AI Documentation](https://zAxn1e.github.io/axiom-hitbox/ai.txt): High-density AI-oriented guide containing strict rules, constraints, complete code examples, and explicit API definitions for AI assistants.
+- [Full Documentation Text](https://zAxn1e.github.io/axiom-hitbox/llms-full.txt): Complete concatenated documentation in a single plain text file.

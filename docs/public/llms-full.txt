@@ -1,0 +1,1736 @@
+# Axiom Hitbox Framework — Complete Documentation
+
+> Production-grade documentation for Axiom Hitbox Framework
+
+Version: 1.4.0
+
+This file contains the complete public documentation for Axiom Hitbox Framework v1.4.0.
+
+================================================================================
+
+# SECTION: Getting Started
+
+--------------------------------------------------------------------------------
+## Page: Installation (getting-started/installation.md)
+--------------------------------------------------------------------------------
+
+# Installation Guide
+
+Axiom Hitbox Framework is distributed exclusively via **packaged builds** to guarantee stability and prevent incomplete runtime imports.
+
+> [!WARNING]
+> **Do NOT clone this repository for production game development.**
+> 
+> The development source code in this repository relies on **Rojo** project structures. Importing `/src` directly into Roblox Studio without proper bundling will result in unresolved module dependencies.
+
+---
+
+## 1. Roblox Creator Store (Recommended)
+
+Installing via the Roblox Creator Store provides seamless studio integration and single-click asset updates:
+
+1. Visit the official [Roblox Creator Store Link](https://create.roblox.com/store/asset/121594941080314).
+2. Click **Get Asset** to add Axiom to your Roblox inventory.
+3. In Roblox Studio, open **Toolbox** -> **Inventory** -> **Packages**.
+4. Drag `Axiom` into `ReplicatedStorage`.
+
+---
+
+## 2. GitHub Releases (Packaged Binaries)
+
+If you prefer offline models or custom Studio setup workflows:
+
+1. Go to [Axiom GitHub Releases](https://github.com/zAxn1e/axiom-hitbox/releases).
+2. Download the latest `.rbxm` or `.rbxmx` package file (e.g., `Axiom-v1.4.0.rbxm`).
+3. In Roblox Studio Explorer, right-click `ReplicatedStorage` -> **Insert from File...**
+4. Select the downloaded `.rbxm` file.
+
+---
+
+## 📁 Recommended Runtime Structure
+
+Once installed, your `ReplicatedStorage` hierarchy will reflect the following structure:
+
+```text
+ReplicatedStorage
++-- Axiom
+    +-- Hitbox.luau             <-- Main public API
+    +-- Core/
+    |   +-- Signal.luau         <-- Event dispatch
+    |   +-- Timer.luau          <-- Temporal primitive
+    |   +-- Scheduler.luau      <-- Shared timer loop
+    |   +-- Types.luau          <-- Type definitions
+    |   +-- Await/              <-- Coroutine synchronization
+    |   +-- Concurrency/        <-- Mutex / Semaphore
+    +-- Service/
+    |   +-- CharacterService.luau <-- LocalPlayer character helper
+    +-- _docs/                  <-- Embedded metadata & license
+```
+
+---
+
+## Unsupported Usage Patterns
+
+To ensure server stability and performance, avoid the following anti-patterns:
+
+- [X] Importing `/src` files directly into Studio without Rojo setup.
+- [X] Manually copying individual files out of `Axiom.Core`.
+- [X] Running Rojo live-syncing output as a production game framework.
+- [X] Modifying internal tables (such as `hb._hit` or `hb._humCache`).
+
+--------------------------------------------------------------------------------
+## Page: Quick Start (getting-started/quick-start.md)
+--------------------------------------------------------------------------------
+
+# Quick Start Guide
+
+This guide will walk you through creating your first server-authoritative melee hitbox using Axiom Hitbox Framework v1.4.0.
+
+---
+
+## 1. Requiring the Framework
+
+Import the `Hitbox` class from the `Axiom` package in `ReplicatedStorage`:
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Axiom = ReplicatedStorage:WaitForChild("Axiom")
+local Hitbox = require(Axiom.Hitbox)
+```
+
+---
+
+## 2. Basic Melee Hitbox Example
+
+Here is a complete, production-ready server script that executes a melee attack on player activation:
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Axiom = ReplicatedStorage:WaitForChild("Axiom")
+local Hitbox = require(Axiom.Hitbox)
+
+local function executeMeleeSwing(player: Player)
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    -- Acquire a pooled hitbox instance
+    local hb = Hitbox.new()
+
+    -- Configure spatial query bounds
+    hb.Shape = "Box"
+    hb.Size = Vector3.new(5, 6, 4)
+
+    -- Attach to character's HumanoidRootPart with an offset (3 studs forward)
+    hb.CFrame = character.HumanoidRootPart
+    hb.Offset = CFrame.new(0, 0, -3)
+
+    -- Set active duration (0.2 seconds for a fast melee swing)
+    hb.Duration = 0.2
+
+    -- Exclude attacker's character from hit detection
+    hb.Ignore = { character }
+
+    -- Connect OnHit event (fires once per target model per activation)
+    local connection
+    connection = hb.OnHit:Connect(function(targetModel: Model, targetHumanoid: Humanoid, hitPart: BasePart)
+        print(`[Combat] Hit target: {targetModel.Name} on part: {hitPart.Name}`)
+        
+        -- Apply damage on server
+        targetHumanoid:TakeDamage(15)
+    end)
+
+    -- Start spatial detection heartbeat loop
+    hb:Start()
+
+    -- Recycle hitbox back to adaptive pool when destroyed
+    -- Note: hb:Destroy() automatically cleans up connections and returns instance to pool
+    task.delay(hb.Duration + 0.05, function()
+        hb:Destroy()
+    end)
+end
+```
+
+---
+
+## 3. Step-by-Step Breakdown
+
+### Step A: Instantiation via Pooling
+```lua
+local hb = Hitbox.new()
+```
+`Hitbox.new()` acquires a pre-allocated object from an internal $O(1)$ memory pool. It warms 30 instances on require, ensuring **zero memory allocation overhead** during active gameplay.
+
+### Step B: Tracking Target CFrame
+```lua
+hb.CFrame = character.HumanoidRootPart
+hb.Offset = CFrame.new(0, 0, -3)
+```
+Assigning a `BasePart` directly to `hb.CFrame` enables **dynamic real-time transformation tracking**. Every frame during `Heartbeat`, Axiom automatically queries the current position of the root part and applies `hb.Offset`.
+
+### Step C: Event Connection
+```lua
+hb.OnHit:Connect(function(model, humanoid, part) ... end)
+```
+`hb.OnHit` is fired using exception-safe `FireSafe` dispatch. If a callback throws an error, other callbacks and the server `Heartbeat` thread continue executing without breaking.
+
+### Step D: Execution & Cleanup
+```lua
+hb:Start()
+-- ... later
+hb:Destroy()
+```
+`:Start()` changes the state from `Idle` to `Active` and binds to `RunService.Heartbeat`. Calling `:Destroy()` stops detection, disconnects listeners, resets properties, and returns the instance to the pool for reuse.
+
+---
+
+## 4. Next Steps
+
+- Explore [Box vs Sphere Spatial Detection](/concepts/spatial-detection)
+- Learn how [Velocity Prediction](/concepts/prediction) prevents lag whiffs
+- Implement [Continuous & Channeling Attacks](/concepts/continuous-attacks)
+
+# SECTION: Core Concepts
+
+--------------------------------------------------------------------------------
+## Page: Architecture & Authority (concepts/architecture.md)
+--------------------------------------------------------------------------------
+
+# Architecture & Authority Model
+
+Axiom Hitbox is engineered as low-level, high-frequency infrastructure for competitive Roblox multiplayer games.
+
+Understanding the architectural boundaries and server authority model is critical for designing scalable combat systems.
+
+---
+
+## 1. Server Authority Model
+
+In competitive multiplayer environments, **the server must remain the sole arbiter of combat resolution**.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Attacker as Client A (Attacker)
+    participant Server as Server (Axiom Hitbox)
+    actor Defender as Client B (Defender)
+
+    Attacker->>Server: RemoteEvent: FireServer("ExecuteAttack")
+    Note over Server: Validate Cooldowns & Stamina
+    Server->>Server: Hitbox.new() -> acquire pooled instance
+    Server->>Server: hb:Start() -> RunService.Heartbeat query
+    
+    alt Target Detected in Spatial Query
+        Server->>Server: OnHit fired (FireSafe)
+        Server->>Server: targetHumanoid:TakeDamage(amount)
+        Server-->>Defender: Replicate Damage / Stun State
+        Server-->>Attacker: Replicate Hit Confirmation VFX
+    end
+
+    Server->>Server: hb:Destroy() -> recycle to pool
+```
+
+### Server Responsibilities
+- Instantiating and executing `Hitbox` spatial queries.
+- Applying damage, posture depletion, and status effects.
+- Managing cooldowns, stamina, and stun state machine transitions.
+
+### Client Responsibilities
+- Playing local animations and sound effects (SFX).
+- Optional client-side visual previewing (using `hb.Visualizer`).
+- **Never sending target hit lists to the server.**
+
+> [!CAUTION]
+> Never accept target models or hit arrays from the client over `RemoteEvents`. Clients should only send intent (e.g. `UseSkill("LightAttack")`). The server calculates spatial detection using Axiom Hitbox.
+
+---
+
+## 2. Infrastructure vs. Gameplay Boundary
+
+Axiom maintains a strict separation of concerns:
+
+| Responsibility Area | Handled by Axiom Framework? | Handled by Your Game Code? |
+| :--- | :---: | :---: |
+| Spatial Detection (`Box` / `Sphere`) | [OK] **YES** | [X] NO |
+| Object Pooling & Memory Stability | [OK] **YES** | [X] NO |
+| Dynamic Velocity Prediction | [OK] **YES** | [X] NO |
+| Character Access (`CharacterService`) | [OK] **YES** | [X] NO |
+| Damage Calculation & Formulas | [X] NO | [OK] **YES** |
+| Combo Counters & Stun Timers | [X] NO | [OK] **YES** |
+| Visual Effects (VFX) & Audio (SFX) | [X] NO | [OK] **YES** |
+| Skill Cooldowns & Mana Costs | [X] NO | [OK] **YES** |
+
+---
+
+## 3. Hot-Path Optimization Rules
+
+To guarantee low latency during high-player combat encounters (e.g. 50+ hitboxes active simultaneously on 60 FPS servers), Axiom applies strict internal optimization rules:
+
+### A. Zero-Allocation `OverlapParams`
+In standard Roblox code, calling `OverlapParams.new()` every frame allocates heap memory and triggers Garbage Collection (GC) spikes. Axiom allocates internal `_activeOverlap` buffers once and mutates properties in-place per activation.
+
+### B. Fast-Path Ancestry Checks
+When `workspace:GetPartBoundsInBox` returns hit parts, traversing ancestry with `FindFirstAncestorOfClass("Model")` is expensive. Axiom checks `part.Parent` fast-path first:
+
+```lua
+-- Internal Axiom optimization snippet
+local parent: Instance? = part.Parent
+if parent and self._hit[parent] then
+    continue -- Fast-skip already processed targets
+end
+```
+
+### C. Weak Humanoid Caching
+Each `Hitbox` instance maintains a weak-keyed `_humCache` metatable (`__mode = "k"`). Once a `Humanoid` reference is discovered for a target `Model`, subsequent lookups operate in $O(1)$ time without child searching.
+
+### D. $O(1)$ Pool Management
+The internal `Pool.luau` tracks active and available instances using an integer counter (`_inUseCount`), avoiding table iterations during allocation or release.
+
+--------------------------------------------------------------------------------
+## Page: Hitbox Lifecycle (concepts/lifecycle.md)
+--------------------------------------------------------------------------------
+
+# Hitbox Lifecycle & Finite State Machine
+
+Every `Hitbox` instance in Axiom operates under an explicit finite state machine.
+
+This lifecycle ensures deterministic execution, eliminates dangling `RunService` loops, and powers automatic memory pooling.
+
+---
+
+## 1. State Transition Diagram
+
+The state machine (`src/Axiom/Hitbox/State.luau`) supports 4 distinct states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: Hitbox.new() (Acquire from Pool)
+    
+    Idle --> Active: hb:Start()
+    Active --> Stopped: hb:Stop() / Duration Expired
+    Active --> Cooldown: Trigger Cooldown
+    
+    Stopped --> Active: hb:Start()
+    Stopped --> Idle: Pool Reset
+    
+    Cooldown --> Active: hb:Start()
+    Cooldown --> Idle: Cooldown Expired
+    
+    Active --> [*]: hb:Destroy() (Return to Pool)
+    Stopped --> [*]: hb:Destroy() (Return to Pool)
+    Idle --> [*]: hb:Destroy() (Return to Pool)
+```
+
+---
+
+## 2. State Breakdown
+
+### `Idle`
+- Initial state upon acquisition from `Hitbox.new()`.
+- Detection loop is **inactive**.
+- No `RunService.Heartbeat` connections active.
+- Safe to mutate configuration properties (`Size`, `CFrame`, `Duration`, `Ignore`, etc.).
+
+### `Active`
+- Entered when `:Start()` is invoked.
+- `OnStart` signal is emitted (`FireSafe`).
+- Binds to `RunService.Heartbeat`.
+- Spatial detection queries execute every frame.
+- Visualizer part (if `hb.Visualizer = true`) is updated in `workspace`.
+
+### `Stopped`
+- Entered when `:Stop()` is invoked or `hb.Duration` expires.
+- `OnStop` signal is emitted.
+- `RunService.Heartbeat` connection is disconnected.
+- Visualizer part is hidden (`Parent = nil`).
+- Can safely transition back to `Active` via `:Start()` or return to pool via `:Destroy()`.
+
+### `Cooldown`
+- State representation for custom cooldown routines.
+- Allows transitions back to `Idle` or `Active`.
+
+---
+
+## 3. Lifecycle Methods
+
+### `Hitbox.new()`
+```lua
+local hb = Hitbox.new()
+```
+Acquires a clean `Hitbox` instance from the global adaptive pool `_POOL`. Properties are reset to defaults, and the state is set to `Idle`.
+
+---
+
+### `hb:Start()`
+```lua
+hb:Start()
+```
+- Validates that the instance has not been destroyed.
+- Transitions state from `Idle`/`Stopped`/`Cooldown` -> `Active`.
+- Copies `OverlapParams` and `Ignore` table references into `_activeOverlap`.
+- Emits `hb.OnStart(hb)`.
+- Connects to `RunService.Heartbeat`.
+
+---
+
+### `hb:Stop()`
+```lua
+hb:Stop()
+```
+- Transitions state to `Stopped`.
+- Disconnects internal `Heartbeat` connection.
+- Hides the visualizer part.
+- Emits `hb.OnStop(hb)`.
+
+---
+
+### `hb:Destroy()`
+```lua
+hb:Destroy()
+```
+- Sets internal flag `_destroyed = true`.
+- Disconnects all signal listeners (`OnHit`, `OnStart`, `OnStop`, `OnUpdate`).
+- Destroys visualizer part instance.
+- Releases the object back to the adaptive pool `_POOL`.
+
+> [!IMPORTANT]
+> **Post-Destroy Invariant**: Do NOT use a `Hitbox` reference after calling `:Destroy()`. Using a destroyed reference will log a warning and block activation.
+
+---
+
+## 4. State Query API
+
+You can inspect the state of a hitbox instance at runtime using non-mutating query methods:
+
+```lua
+-- Get state string ("Idle", "Active", "Stopped", "Cooldown")
+local currentState: string = hb:GetState()
+
+-- Check if hitbox is in a specific state
+if hb:Is("Active") then
+    print("Hitbox is currently scanning")
+end
+
+-- Helper shortcut for active state check
+if hb:IsActive() then
+    -- ...
+end
+```
+
+--------------------------------------------------------------------------------
+## Page: Spatial Queries (Box & Sphere) (concepts/spatial-detection.md)
+--------------------------------------------------------------------------------
+
+# Spatial Detection (Box & Sphere)
+
+Axiom Hitbox v1.4.0 supports two geometry shapes for spatial queries: **Box** and **Sphere**.
+
+Both geometries run on native Roblox engine spatial methods (`WorldRoot:GetPartBoundsInBox` and `WorldRoot:GetPartBoundsInRadius`), providing high accuracy and low execution time.
+
+---
+
+## 1. Geometry Comparison
+
+| Property / Feature | Box Geometry (`hb.Shape = "Box"`) | Sphere Geometry (`hb.Shape = "Sphere"`) |
+| :--- | :--- | :--- |
+| **Engine Function** | `workspace:GetPartBoundsInBox` | `workspace:GetPartBoundsInRadius` |
+| **Primary Dimensions** | `Size: Vector3` | `Radius: number` |
+| **Orientation Awareness**| Full CFrame rotation matrix | Radius is isotropic (rotation invariant) |
+| **Best Used For** | Melee swings, swords, punches, directed slashes | Radial explosions, slam attacks, persistent auras |
+
+---
+
+## 2. Box Geometry (`Shape = "Box"`)
+
+Box detection tests part overlaps within an oriented 3D bounding box defined by `CFrame` and `Size`:
+
+```lua
+local hb = Hitbox.new()
+hb.Shape = "Box"
+hb.Size = Vector3.new(4, 6, 8) -- (Width=4, Height=6, Depth=8)
+hb.CFrame = character.HumanoidRootPart
+hb.Offset = CFrame.new(0, 0, -4) -- Position 4 studs in front of character
+hb.Duration = 0.25
+hb:Start()
+```
+
+---
+
+## 3. Sphere Geometry (`Shape = "Sphere"`)
+
+Sphere detection tests part overlaps within a spherical radius around a center position:
+
+```lua
+local hb = Hitbox.new()
+hb.Shape = "Sphere"
+hb.Radius = 12 -- 12 studs radius (24 studs diameter)
+hb.CFrame = character.HumanoidRootPart
+hb.Duration = 0.3
+hb:Start()
+```
+
+> [!NOTE]
+> If `hb.Radius` is not explicitly set, Axiom fallback calculates the radius as `hb.Size.X * 0.5`.
+
+---
+
+## 4. Position & Dynamic Tracking
+
+The `hb.CFrame` property accepts 4 data types, accommodating static locations as well as dynamic moving rigs:
+
+### A. BasePart (Dynamic Tracking)
+Assigning a `BasePart` automatically tracks its position and orientation in real-time every frame:
+```lua
+hb.CFrame = character.HumanoidRootPart
+-- or weapon instance
+hb.CFrame = tool.Handle
+```
+
+### B. Attachment (Attachment Tracking - Added in v1.4.0)
+Assigning an `Attachment` tracks its `WorldCFrame` dynamically:
+```lua
+hb.CFrame = tool.Handle.HitAttachment
+```
+
+### C. CFrame (Static Position)
+Assigning a fixed `CFrame` locks spatial detection to a stationary coordinate:
+```lua
+hb.CFrame = CFrame.new(100, 5, -250)
+```
+
+### D. Vector3 (Position Only)
+Assigning a `Vector3` constructs a default `CFrame.new(position)`:
+```lua
+hb.CFrame = Vector3.new(0, 10, 0)
+```
+
+---
+
+## 5. Filtering Rules (`Ignore` & `OverlapParams`)
+
+Axiom processes filtering rules efficiently to ignore non-combat targets:
+
+### Basic Ignore List (`hb.Ignore`)
+Pass an array of instances (typically the attacking player's character or friendly pets):
+```lua
+hb.Ignore = { attackerCharacter, petModel }
+```
+
+### Custom `OverlapParams` (`hb.OverlapParams`)
+For advanced collision group filtering or raycast filter types, assign a custom `OverlapParams` instance:
+```lua
+local params = OverlapParams.new()
+params.CollisionGroup = "CombatOnly"
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = { attackerCharacter, workspace.Terrain }
+
+hb.OverlapParams = params
+```
+
+> [!TIP]
+> Axiom mutates an internal buffer `_activeOverlap` when starting, so changing properties on `hb.Ignore` before `:Start()` will take effect immediately.
+
+--------------------------------------------------------------------------------
+## Page: Velocity Prediction (concepts/prediction.md)
+--------------------------------------------------------------------------------
+
+# Target Velocity Prediction
+
+In fast-paced action games or high-latency network conditions, target characters moving at high velocity can travel outside the current frame's spatial query box before the server registers the hit.
+
+Axiom Hitbox provides built-in **Linear and Angular Target Velocity Prediction** to eliminate latency discrepancies.
+
+---
+
+## 1. How Prediction Works
+
+When `hb.UsePrediction = true` and `hb.CFrame` is bound to a `BasePart`, Axiom extrapolates the part's CFrame forward in time based on its physical assembly velocities before performing spatial queries:
+
+$$\text{Extrapolated Position} = \text{CFrame} + (\text{AssemblyLinearVelocity} \times \Delta t)$$
+
+$$\text{Extrapolated Rotation} = \text{CFrame} \times \text{fromAxisAngle}(\text{AssemblyAngularVelocity.Unit}, \|\text{AssemblyAngularVelocity}\| \times \Delta t)$$
+
+---
+
+## 2. Enabling Prediction
+
+Prediction is configured using three properties on the `Hitbox` instance:
+
+```lua
+local hb = Hitbox.new()
+hb.CFrame = character.HumanoidRootPart
+hb.Size = Vector3.new(4, 5, 4)
+hb.Duration = 0.2
+
+-- Enable prediction
+hb.UsePrediction = true
+
+-- Set prediction look-ahead time (seconds)
+hb.PredictionTime = 0.08 -- 80ms look-ahead
+
+-- Choose prediction algorithm ("Linear", "Angular", or "LinearAngular")
+hb.PredictionMethod = "LinearAngular"
+
+hb:Start()
+```
+
+---
+
+## 3. Prediction Methods
+
+### `"Linear"`
+Extrapolates position based solely on `AssemblyLinearVelocity`. Ideal for straight dashes, sprinting targets, and fast-moving projectiles.
+
+### `"Angular"`
+Extrapolates orientation based solely on `AssemblyAngularVelocity`. Ideal for spinning characters, rotating melee swings, or spinning vehicles.
+
+### `"LinearAngular"`
+Combines both linear position and angular rotation extrapolation. Recommended for complex acrobatics, air combos, and fast physical movement.
+
+---
+
+## 4. Best Practices & Recommended Tuning
+
+- **Default Look-Ahead (`PredictionTime`)**: `0.06` to `0.08` seconds (60ms - 80ms) matches average player round-trip network ping.
+- **When to Use**:
+  - Fast dashing attacks (e.g. flash steps, high-speed lunges).
+  - High-velocity projectiles or spell effects.
+  - Air combo launchers and knockbacks.
+- **When NOT to Use**:
+  - Stationary boss fights or slow-moving ambient NPCs.
+  - Large spherical area-of-effect (AoE) explosions where position extrapolation could cause hits through walls.
+
+--------------------------------------------------------------------------------
+## Page: Continuous Attacks (concepts/continuous-attacks.md)
+--------------------------------------------------------------------------------
+
+# Continuous & Channeling Attacks
+
+By default, an Axiom `Hitbox` records every target `Model` it strikes in an internal hit memory buffer (`_hit`) and fires `OnHit` **exactly once per model per activation**.
+
+For continuous skills—such as spin attacks, flamethrowers, laser beams, or damage-over-time (DoT) auras—you need the hitbox to hit the same target repeatedly at regular intervals.
+
+Axiom Hitbox v1.4.0 introduces the **`HitResetInterval`** property to handle continuous channeling natively.
+
+---
+
+## 1. Using `HitResetInterval`
+
+Setting `HitResetInterval` to a positive number (seconds) automatically resets the internal hit memory buffer whenever the specified time interval elapses:
+
+```lua
+local hb = Hitbox.new()
+hb.Shape = "Sphere"
+hb.Radius = 10
+hb.CFrame = character.HumanoidRootPart
+hb.Duration = 5.0 -- Active for 5 seconds total
+
+-- Reset hit memory every 0.5 seconds (deals damage 2x per second)
+hb.HitResetInterval = 0.5
+
+hb.Ignore = { character }
+
+hb.OnHit:Connect(function(targetModel: Model, targetHumanoid: Humanoid, hitPart: BasePart)
+    print(`[Channeling] Ticked damage on {targetModel.Name}`)
+    targetHumanoid:TakeDamage(10)
+end)
+
+hb:Start()
+```
+
+---
+
+## 2. Execution Mechanics
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Server as Server (RunService Heartbeat)
+    participant Hitbox as Hitbox Instance
+    participant Memory as Hit Memory (_hit)
+    participant Targets as Target Models (A & B)
+
+    Note over Hitbox,Memory: 0.0s — hb:Start() Activation
+    Hitbox->>Memory: table.clear(_hit)
+    Hitbox->>Targets: Detect Target A & Target B
+    Hitbox->>Targets: Fire OnHit(Target A) & OnHit(Target B)
+    Note over Memory: Memory Caches: { ModelA: true, ModelB: true }
+
+    Note over Server,Hitbox: 0.5s — Interval Reached (elapsed >= 0.5s)
+    Server->>Hitbox: Heartbeat Loop Check
+    Hitbox->>Memory: table.clear(_hit) [Reset Memory]
+    Hitbox->>Targets: Re-scan & Fire OnHit(Target A) & OnHit(Target B)
+
+    Note over Server,Hitbox: 1.0s — Interval Reached (elapsed >= 1.0s)
+    Server->>Hitbox: Heartbeat Loop Check
+    Hitbox->>Memory: table.clear(_hit) [Reset Memory]
+    Hitbox->>Targets: Re-scan & Fire OnHit(Target A) & OnHit(Target B)
+
+    Note over Hitbox: Duration Expired / hb:Stop()
+```
+
+1. On `:Start()`, `_lastHitReset` is set to 0 and `_hit` is cleared.
+2. During each `Heartbeat` frame, Axiom checks if `elapsed - lastHitReset >= HitResetInterval`.
+3. If the threshold is reached, `table.clear(_hit)` is executed in $O(1)$ time, allowing targets currently inside the hitbox bounds to register another `OnHit` event.
+
+---
+
+## 3. Common Use Cases & Presets
+
+### Spin Attacks / Whirlwinds
+```lua
+hb.Duration = 2.0
+hb.HitResetInterval = 0.25 -- 4 hits per second
+```
+
+### Flamethrowers & Beam Weapons
+```lua
+hb.Duration = 3.0
+hb.HitResetInterval = 0.1 -- 10 hits per second (rapid tick damage)
+```
+
+### Passive Aura Damage
+```lua
+hb.Duration = 10.0
+hb.HitResetInterval = 1.0 -- 1 hit per second
+```
+
+# SECTION: API Reference
+
+--------------------------------------------------------------------------------
+## Page: Hitbox API (api/hitbox.md)
+--------------------------------------------------------------------------------
+
+# Hitbox Class API Reference
+
+The `Hitbox` class is the primary public API surface of the Axiom Hitbox Framework.
+
+```lua
+local Hitbox = require(Axiom.Hitbox)
+```
+
+---
+
+## Constructor
+
+### `Hitbox.new()`
+```lua
+function Hitbox.new(): Hitbox
+```
+Acquires a `Hitbox` instance from the internal $O(1)$ adaptive object pool (`_POOL`). The returned object is in the `Idle` state with clean default configuration.
+
+- **Returns**: `Hitbox`
+- **Performance**: $O(1)$ constant time lookup. Pre-warms 30 instances on require.
+
+---
+
+## Class Functions
+
+### `Hitbox.GetPoolStats()`
+```lua
+function Hitbox.GetPoolStats(): { available: number, inUse: number }
+```
+Returns diagnostics about the internal adaptive object pool.
+
+- **Returns**: A table `{ available = number, inUse = number }`.
+
+---
+
+## Properties
+
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `Size` | `Vector3` | `Vector3.new(4, 4, 4)` | Bounding box dimensions for spatial queries. |
+| `Shape` | `"Box" \| "Sphere"` | `"Box"` | Geometry query method (`"Box"` uses `GetPartBoundsInBox`, `"Sphere"` uses `GetPartBoundsInRadius`). |
+| `Radius` | `number` | `4` | Spherical radius used when `Shape = "Sphere"`. |
+| `HitResetInterval` | `number?` | `nil` | Optional interval (seconds) to reset hit memory for continuous attacks. |
+| `CFrame` | `CFrame \| BasePart \| Attachment \| Vector3` | `CFrame.identity` | Position or dynamic target instance to track. |
+| `Offset` | `CFrame` | `CFrame.identity` | Local offset matrix applied to `CFrame`. |
+| `Duration` | `number` | `math.huge` | Active lifetime limit (seconds). |
+| `Ignore` | `{ Instance }` | `{}` | Array of instances excluded from hit detection. |
+| `OverlapParams` | `OverlapParams?` | `nil` | Custom engine overlap params filter. |
+| `Visualizer` | `boolean` | `false` | Enables debug Part rendering in `workspace`. |
+| `UsePrediction` | `boolean` | `false` | Enables target velocity prediction. |
+| `PredictionTime` | `number` | `0.06` | Prediction look-ahead time (seconds). |
+| `PredictionMethod` | `"Linear" \| "Angular" \| "LinearAngular"` | `"Linear"` | Extrapolation algorithm for velocity prediction. |
+
+---
+
+## Signals
+
+### `OnStart`
+```lua
+OnStart: Signal<Hitbox>
+```
+Emitted synchronously via `FireSafe` when `:Start()` is called.
+
+### `OnStop`
+```lua
+OnStop: Signal<Hitbox>
+```
+Emitted synchronously via `FireSafe` when `:Stop()` is called or duration expires.
+
+### `OnUpdate`
+```lua
+OnUpdate: Signal<number, Hitbox>
+```
+Emitted every `Heartbeat` frame while active. Passes delta time (`dt`) and the hitbox instance.
+
+### `OnHit`
+```lua
+OnHit: Signal<Model, Humanoid, BasePart>
+```
+Emitted synchronously via `FireSafe` when a new target `Model` containing a `Humanoid` is detected inside spatial query bounds.
+- **Arguments**: `(targetModel: Model, targetHumanoid: Humanoid, hitPart: BasePart)`
+
+---
+
+## Lifecycle Methods
+
+### `:Start()`
+```lua
+function Hitbox:Start(): ()
+```
+Activates spatial detection. Transitions state to `Active`, prepares `_activeOverlap`, emits `OnStart`, and connects to `RunService.Heartbeat`.
+
+### `:Stop()`
+```lua
+function Hitbox:Stop(): ()
+```
+Halts spatial detection. Transitions state to `Stopped`, disconnects `Heartbeat`, hides visualizer, and emits `OnStop`.
+
+### `:Destroy()`
+```lua
+function Hitbox:Destroy(): ()
+```
+Cleans up event connections, hides visualizer, sets `_destroyed = true`, and returns the instance to the pool for recycling.
+
+---
+
+## Transformation & Utility Methods
+
+### `:SetCFrame(cf)`
+```lua
+function Hitbox:SetCFrame(cf: CFrame | BasePart | Attachment | Vector3): ()
+```
+Helper method to update `hb.CFrame`.
+
+---
+
+## State Query Methods
+
+### `:GetState()`
+```lua
+function Hitbox:GetState(): string
+```
+Returns current state string (`"Idle"`, `"Active"`, `"Stopped"`, `"Cooldown"`).
+
+### `:Is(state)`
+```lua
+function Hitbox:Is(state: string): boolean
+```
+Returns `true` if current state matches parameter.
+
+### `:IsActive()`
+```lua
+function Hitbox:IsActive(): boolean
+```
+Returns `true` if current state is `"Active"`.
+
+--------------------------------------------------------------------------------
+## Page: Signal API (api/signal.md)
+--------------------------------------------------------------------------------
+
+# Signal API Reference
+
+`Signal` is a lightweight, synchronous, zero-allocation event primitive used throughout Axiom Core and Hitbox.
+
+```lua
+local Signal = require(Axiom.Core.Signal)
+```
+
+---
+
+## Constructor
+
+### `Signal.new()`
+```lua
+function Signal.new<T...>(): Signal<T...>
+```
+Creates a new `Signal` instance.
+
+---
+
+## Methods
+
+### `:Connect(fn)`
+```lua
+function Signal:Connect(fn: (...any) -> ()): Connection
+```
+Connects a callback handler to the signal.
+- **Returns**: `Connection` table `{ Disconnect: () -> () }`.
+
+---
+
+### `:Once(fn)`
+```lua
+function Signal:Once(fn: (...any) -> ()): Connection
+```
+Connects a callback handler that automatically disconnects itself after the first execution.
+
+---
+
+### `:FireFast(...args)`
+```lua
+function Signal:FireFast(...: any): ()
+```
+Fires all connected handlers sequentially without error handling wrappers. Maximum speed for hot paths.
+
+---
+
+### `:FireSafe(...args)`
+```lua
+function Signal:FireSafe(...: any): ()
+```
+Fires all connected handlers wrapped in `pcall`. If a handler throws an error, a warning is logged (`[Signal] Handler error: ...`) and remaining handlers continue executing. Used by `OnHit`.
+
+---
+
+### `:HasConnections()`
+```lua
+function Signal:HasConnections(): boolean
+```
+Returns `true` if any active callbacks are currently connected.
+
+---
+
+### `:DisconnectAllFast()`
+```lua
+function Signal:DisconnectAllFast(): ()
+```
+Clears all connected handlers instantly in $O(1)$ time.
+
+---
+
+### `:Freeze()` / `:Unfreeze()`
+```lua
+function Signal:Freeze(): ()
+function Signal:Unfreeze(): ()
+```
+Temporarily pauses or resumes event dispatching. When frozen, calls to `FireFast` and `FireSafe` are ignored.
+
+---
+
+### `:Destroy()`
+```lua
+function Signal:Destroy(): ()
+```
+Permanently destroys the signal, disconnects handlers, and freezes further connections.
+
+--------------------------------------------------------------------------------
+## Page: Timer API (api/timer.md)
+--------------------------------------------------------------------------------
+
+# Timer & Scheduler API Reference
+
+`Timer` is a temporal infrastructure primitive backed by a centralized update loop (`Scheduler.luau`).
+
+```lua
+local Timer = require(Axiom.Core.Timer)
+```
+
+---
+
+## Constructor
+
+### `Timer.new(duration)`
+```lua
+function Timer.new(duration: number): Timer
+```
+Creates a new `Timer` instance configured for `duration` seconds.
+- **Parameters**: `duration: number` (must be > 0).
+
+---
+
+## Properties
+
+- `Duration: number` — Total duration limit (seconds).
+- `Remaining: number` — Remaining time (seconds).
+- `Running: boolean` — Whether timer is currently active.
+
+---
+
+## Signals
+
+- `OnFinished: Signal<()>` — Emitted when remaining time reaches 0.
+- `OnUpdated: Signal<number>` — Emitted on scheduler ticks if updates are enabled via `:SetEmitUpdates(true)`.
+
+---
+
+## Control Methods
+
+- `:Start()` — Starts timer and registers with `Scheduler`.
+- `:Stop()` — Halts timer and removes from `Scheduler`.
+- `:Pause()` — Pauses remaining countdown.
+- `:Resume()` — Resumes countdown from paused state.
+- `:Reset(duration?)` — Resets remaining time to duration.
+- `:Destroy()` — Stops timer and disconnects signals.
+
+---
+
+## Query Methods
+
+- `:GetRemaining() -> number` — Returns remaining seconds.
+- `:GetElapsed() -> number` — Returns elapsed seconds.
+- `:GetProgress() -> number` — Returns progress ratio between `0.0` and `1.0`.
+- `:IsRunning() -> boolean` — Returns `true` if active.
+- `:IsPaused() -> boolean` — Returns `true` if paused.
+- `:IsFinished() -> boolean` — Returns `true` if remaining <= 0.
+
+--------------------------------------------------------------------------------
+## Page: Await Synchronization API (api/await.md)
+--------------------------------------------------------------------------------
+
+# Await Synchronization API Reference
+
+`Await` is a coroutine-based synchronization library providing safe cancellation, timeouts, barriers, and concurrency primitives for Roblox.
+
+```lua
+local Await = require(Axiom.Core.Await)
+```
+
+---
+
+## Cancellation Tokens (`CancelToken`)
+
+### `Await.Token()`
+```lua
+function Await.Token(): CancelToken
+```
+Creates a new cooperative cancellation token.
+
+#### Token Methods
+- `token:Cancel(reason?)` — Triggers cancellation and notifies callbacks/children.
+- `token:ThrowIfCancelled()` — Throws error if token is cancelled.
+- `token:OnCancelled(fn)` — Binds callback executed upon cancellation.
+- `token:Child()` — Creates a child token that automatically cancels when parent cancels.
+- `token:LinkToInstance(inst)` — Automatically cancels token when Roblox `Instance` is destroyed.
+
+---
+
+## Core Primitives
+
+### `Await.Signal(signal, timeout?, token?)`
+Yields the thread until an `RBXScriptSignal` or Axiom `Signal` fires. Returns fired arguments. Throws error on timeout or token cancellation.
+
+### `Await.Sleep(seconds, token?)`
+Wrapper around `task.delay` supporting cooperative cancellation and token validation.
+
+### `Await.Any(tasks, timeout?, token?)` / `Await.Race`
+Runs multiple async functions in parallel. Resumes when the **first** task completes successfully.
+
+### `Await.All(tasks, timeout?, opts?, token?)`
+Synchronization barrier. Yields until **all** tasks complete.
+
+### `Await.Condition(predicate, timeout?, interval?)`
+Polls a predicate function until it returns `true`.
+
+---
+
+## Functional Utilities
+
+- `Await.Try(fn)` — Executes function safely, returning `{ success = true, values = {...} }` or `{ success = false, error = ... }`.
+- `Await.Retry(fn, maxAttempts, opts?)` — Retries function upon failure with configurable backoff.
+- `Await.Debounce(fn, delay, opts?)` — Coalesces rapid calls into a single execution after delay.
+- `Await.Throttle(fn, window, opts?)` — Ensures function executes at most once per time window.
+- `Await.Queue()` — Returns function wrapper serializing calls in FIFO order.
+
+---
+
+## Concurrency Primitives
+
+### `Await.Mutex()`
+Mutual exclusion lock for critical sections:
+```lua
+local mutex = Await.Mutex()
+mutex:Scoped(function()
+    -- Critical section (only 1 thread at a time)
+end)
+```
+
+### `Await.Semaphore(maxCount)`
+Limits concurrent thread access up to `maxCount` capacity.
+
+--------------------------------------------------------------------------------
+## Page: CharacterService API (api/character-service.md)
+--------------------------------------------------------------------------------
+
+# CharacterService API Reference
+
+`CharacterService` provides managed, type-safe, race-condition-proof access to the `LocalPlayer` character and its core components (`HumanoidRootPart`, `Humanoid`, `Animator`).
+
+```lua
+local CharacterService = require(Axiom.Service.CharacterService)
+```
+
+---
+
+## State Properties (Read-Only Inspection)
+
+Nullable properties for non-blocking checks:
+
+- `CharacterService.Character: Model?`
+- `CharacterService.Root: BasePart?`
+- `CharacterService.Humanoid: Humanoid?`
+- `CharacterService.Animator: Animator?`
+
+---
+
+## Yielding Getters (Guaranteed Non-Nil)
+
+Getters block execution via `Axiom.Await` until character components exist and are attached to `game`:
+
+### `GetCharacter()`
+```lua
+function CharacterService:GetCharacter(): Model
+```
+
+### `GetRoot()`
+```lua
+function CharacterService:GetRoot(): BasePart
+```
+
+### `GetHumanoid()`
+```lua
+function CharacterService:GetHumanoid(): Humanoid
+```
+
+### `GetAnimator()`
+```lua
+function CharacterService:GetAnimator(): Animator
+```
+
+### `Get()`
+```lua
+function CharacterService:Get(): (Model, BasePart, Humanoid, Animator)
+```
+Returns all 4 core components in a single tuple once fully loaded.
+
+---
+
+## Signals
+
+- `CharacterService.CharacterAdded: Signal<Model>` — Emitted after all internal components (Root, Humanoid, Animator) are bound and verified.
+- `CharacterService.CharacterRemoving: Signal<Model>` — Emitted right before unbinding cleanup during player respawn.
+
+--------------------------------------------------------------------------------
+## Page: Shared Types (api/types.md)
+--------------------------------------------------------------------------------
+
+# Shared Types API Reference
+
+Axiom exports Luau type definitions in `src/Axiom/Core/Types.luau` for complete `--!strict` type checking.
+
+```lua
+local Types = require(Axiom.Core.Types)
+```
+
+---
+
+## Type Enums & Aliases
+
+### `HitboxState`
+```lua
+export type HitboxState = "Idle" | "Active" | "Stopped" | "Cooldown"
+```
+
+### `HitboxPredictionMethod`
+```lua
+export type HitboxPredictionMethod = "Linear" | "Angular" | "LinearAngular"
+```
+
+### `HitboxShape`
+```lua
+export type HitboxShape = "Box" | "Sphere"
+```
+
+---
+
+## Interface Definitions
+
+### `Hitbox` Type
+Defines all public properties, signals, and methods on a `Hitbox` instance.
+
+### `Timer` Type
+Defines properties, signals, and methods on a `Timer` instance.
+
+### `StateMachine` Type
+Defines state transition interface:
+```lua
+export type StateMachine = {
+    current: State,
+    canTransition: (self: StateMachine, to: State) -> boolean,
+    set: (self: StateMachine, to: State) -> boolean,
+    is: (self: StateMachine, state: State) -> boolean,
+}
+```
+
+# SECTION: Guides & Patterns
+
+--------------------------------------------------------------------------------
+## Page: Melee Combat System (guides/melee-combat.md)
+--------------------------------------------------------------------------------
+
+# Building a Melee Combat System
+
+This guide demonstrates how to construct a robust, server-authoritative 3-hit combo melee combat system using Axiom Hitbox and Axiom Core primitives.
+
+---
+
+## Architecture Pattern
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Player as Client (Player Input)
+    participant Remote as RemoteEvent ("ExecuteAttack")
+    participant ComboMgr as Server (ComboManager)
+    participant Hitbox as Axiom Hitbox Instance
+    actor Target as Enemy Target
+
+    Player->>Remote: FireServer("LightAttack")
+    Remote->>ComboMgr: ExecuteAttack(player)
+    Note over ComboMgr: Validate Cooldown & Reset Combo Window (>1.2s)
+    ComboMgr->>Hitbox: Hitbox.new() (Acquire from Pool)
+    ComboMgr->>Hitbox: Configure Size, CFrame Offset, Duration
+    ComboMgr->>Hitbox: hb.OnHit:Connect(Damage + Knockback)
+    ComboMgr->>Hitbox: hb:Start()
+    
+    Hitbox->>Target: Detect Target Model & Humanoid
+    Hitbox->>Target: Fire OnHit -> TakeDamage(config.Damage)
+    
+    Note over ComboMgr,Hitbox: task.delay(Duration + 0.05) -> hb:Destroy()
+```
+
+---
+
+## Full Implementation Code
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Axiom = ReplicatedStorage:WaitForChild("Axiom")
+local Hitbox = require(Axiom.Hitbox)
+local Await = require(Axiom.Core.Await)
+
+local ComboManager = {}
+ComboManager.PlayerData = {}
+
+-- Combo Configuration
+local COMBO_DATA = {
+    [1] = { Damage = 10, Size = Vector3.new(4, 5, 4), Duration = 0.2, Stun = 0.4 },
+    [2] = { Damage = 12, Size = Vector3.new(4, 5, 4), Duration = 0.2, Stun = 0.4 },
+    [3] = { Damage = 25, Size = Vector3.new(6, 6, 6), Duration = 0.35, Stun = 0.8, Knockback = 40 },
+}
+
+function ComboManager.ExecuteAttack(player: Player)
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+
+    local userId = player.UserId
+    local data = ComboManager.PlayerData[userId] or { Step = 1, LastAttack = 0 }
+    
+    local now = os.clock()
+    if now - data.LastAttack > 1.2 then
+        data.Step = 1 -- Reset combo sequence if player waited too long
+    end
+
+    local config = COMBO_DATA[data.Step]
+    data.LastAttack = now
+
+    -- 1. Acquire Hitbox
+    local hb = Hitbox.new()
+    hb.Shape = "Box"
+    hb.Size = config.Size
+    hb.CFrame = character.HumanoidRootPart
+    hb.Offset = CFrame.new(0, 0, -3.5)
+    hb.Duration = config.Duration
+    hb.Ignore = { character }
+
+    -- 2. Connect Hit Logic
+    hb.OnHit:Connect(function(targetModel: Model, targetHumanoid: Humanoid, hitPart: BasePart)
+        -- Deal damage
+        targetHumanoid:TakeDamage(config.Damage)
+        
+        -- Apply knockback on finisher
+        if config.Knockback and targetModel:FindFirstChild("HumanoidRootPart") then
+            local root = targetModel.HumanoidRootPart :: BasePart
+            local moveDir = character.HumanoidRootPart.CFrame.LookVector
+            root:ApplyImpulse(moveDir * config.Knockback * root:GetMass())
+        end
+    end)
+
+    -- 3. Execute Hitbox
+    hb:Start()
+
+    -- Advance combo step
+    data.Step = (data.Step % #COMBO_DATA) + 1
+    ComboManager.PlayerData[userId] = data
+
+    -- 4. Clean up after duration
+    task.delay(config.Duration + 0.05, function()
+        hb:Destroy()
+    end)
+end
+
+return ComboManager
+```
+
+--------------------------------------------------------------------------------
+## Page: Radial & Explosion AoE (guides/aoe-abilities.md)
+--------------------------------------------------------------------------------
+
+# Radial & Explosion AoE Attacks
+
+Spherical spatial queries (`hb.Shape = "Sphere"`) are ideal for ground slams, spell explosions, and area-of-effect (AoE) shockwaves.
+
+---
+
+## Example: Ground Slam Explosion
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Axiom = ReplicatedStorage:WaitForChild("Axiom")
+local Hitbox = require(Axiom.Hitbox)
+
+local function TriggerGroundSlam(casterCharacter: Model, slamPosition: Vector3)
+    local hb = Hitbox.new()
+    hb.Shape = "Sphere"
+    hb.Radius = 16 -- 16 studs radius spherical blast
+    hb.CFrame = slamPosition
+    hb.Duration = 0.15 -- Quick instant explosion burst
+    hb.Ignore = { casterCharacter }
+
+    hb.OnHit:Connect(function(targetModel: Model, targetHumanoid: Humanoid, hitPart: BasePart)
+        -- Falloff damage calculation based on distance from center
+        local targetRoot = targetModel:FindFirstChild("HumanoidRootPart")
+        local distance = if targetRoot then (targetRoot.Position - slamPosition).Magnitude else 0
+        
+        local maxDamage = 50
+        local minDamage = 15
+        local damageRatio = math.clamp(1 - (distance / hb.Radius), 0, 1)
+        local finalDamage = minDamage + (damageRatio * (maxDamage - minDamage))
+
+        targetHumanoid:TakeDamage(finalDamage)
+    end)
+
+    hb:Start()
+
+    task.delay(0.2, function()
+        hb:Destroy()
+    end)
+end
+```
+
+--------------------------------------------------------------------------------
+## Page: Channeling & Auras (guides/channeling-auras.md)
+--------------------------------------------------------------------------------
+
+# Channeling Skills & Persistent Auras
+
+For continuous channeled abilities (laser beams, whirlwinds, or poison clouds), use **`HitResetInterval`** combined with long `Duration` settings.
+
+---
+
+## Example: Spin Attack / Whirlwind
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Axiom = ReplicatedStorage:WaitForChild("Axiom")
+local Hitbox = require(Axiom.Hitbox)
+
+local function StartWhirlwind(casterCharacter: Model, duration: number)
+    local root = casterCharacter:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local hb = Hitbox.new()
+    hb.Shape = "Sphere"
+    hb.Radius = 10
+    hb.CFrame = root
+    hb.Duration = duration
+    
+    -- Reset hit memory every 0.4 seconds -> hits targets 2.5x per second
+    hb.HitResetInterval = 0.4 
+    hb.Ignore = { casterCharacter }
+
+    hb.OnHit:Connect(function(targetModel: Model, targetHumanoid: Humanoid)
+        targetHumanoid:TakeDamage(8)
+    end)
+
+    hb:Start()
+
+    -- Automatically release back to pool when channeling ends
+    task.delay(duration + 0.1, function()
+        hb:Destroy()
+    end)
+end
+```
+
+--------------------------------------------------------------------------------
+## Page: Pooling & Performance (guides/pooling-performance.md)
+--------------------------------------------------------------------------------
+
+# Object Pooling & Performance Best Practices
+
+Axiom Hitbox uses an internal adaptive object pool (`_POOL`) to maintain zero allocation pressure during combat.
+
+---
+
+## 1. How the Adaptive Pool Works
+
+- **Warm Allocation**: On initial require, 30 `Hitbox` instances are pre-allocated.
+- **Constant Time ($O(1)$)**: `:acquire()` (`Hitbox.new()`) pops an instance from the array in $O(1)$ time. `:release()` (`hb:Destroy()`) resets state and pushes it back in $O(1)$ time.
+- **Adaptive Shrinking**: If a server experiences a sudden spike (e.g. 200 hitboxes allocated), the pool temporarily expands. After 30 seconds of inactivity, an adaptive background thread shrinks excess instances back down to the baseline size of 20.
+
+---
+
+## 2. Best Practice Rules
+
+### [OK] Always call `hb:Destroy()`
+Never leave active or stopped hitboxes un-destroyed. Calling `:Destroy()` is mandatory to return instances to the pool and disconnect signal handlers.
+
+### [X] Do NOT use references after `Destroy()`
+Once `hb:Destroy()` is called, the reference points to a pooled instance that may be acquired by another script. Modifying it post-destroy corrupts state.
+
+### [OK] Reuse `Ignore` tables where possible
+Assigning an existing table reference to `hb.Ignore` avoids table instantiation overhead.
+
+### Check Pool Diagnostics
+Monitor active vs available pool statistics in dev environments:
+```lua
+print(Hitbox.GetPoolStats()) -- Outputs { available = 28, inUse = 2 }
+```
+
+--------------------------------------------------------------------------------
+## Page: Debug Visualizer (guides/debugging-visualizer.md)
+--------------------------------------------------------------------------------
+
+# Debug Visualizer Workflows
+
+Axiom Hitbox includes a built-in visualizer for debugging hitbox positions, sizes, orientations, and durations inside Roblox Studio.
+
+---
+
+## 1. Enabling the Visualizer
+
+Set `Visualizer = true` on any `Hitbox` instance before calling `:Start()`:
+
+```lua
+local hb = Hitbox.new()
+hb.Size = Vector3.new(4, 5, 6)
+hb.CFrame = character.HumanoidRootPart
+hb.Offset = CFrame.new(0, 0, -3)
+
+-- Enable visualizer for testing
+hb.Visualizer = true
+
+hb:Start()
+```
+
+---
+
+## 2. Visualizer Behavior & Rendering
+
+- **Box Hitboxes**: Renders a translucent neon red `Part` (`Color3.fromRGB(255, 60, 60)`, `Transparency = 0.7`, `CastShadow = false`) matching `hb.Size` and `hb.CFrame * hb.Offset`.
+- **Sphere Hitboxes**: Renders a translucent neon red spherical `Part` (`Shape = Enum.PartType.Ball`) with diameter `Radius * 2`.
+- **Part Pooling**: In v1.4.0, visualizer parts are pooled directly on the `Hitbox` instance. They are set to `Parent = workspace` during `:Start()` and hidden (`Parent = nil`) during `:Stop()` / `:Destroy()`, avoiding constant `Instance.new` / `:Destroy()` churn.
+
+> [!WARNING]
+> Visualizer rendering introduces mild DOM overhead in Roblox Studio. Disable `Visualizer = false` before publishing production game builds.
+
+# SECTION: Development & Contributing
+
+--------------------------------------------------------------------------------
+## Page: Contributing Guidelines (development/contributing.md)
+--------------------------------------------------------------------------------
+
+# Contributing Guidelines
+
+Thank you for your interest in contributing to **Axiom Hitbox Framework**!
+
+As low-level infrastructure for Roblox games, all contributions must preserve strict determinism, sub-millisecond execution times, zero-allocation hot paths, and full `--!strict` Luau type safety.
+
+---
+
+## 1. Scope Boundaries
+
+### Axiom IS Responsible For:
+- Spatial detection queries (`Box` and `Sphere`).
+- Dynamic `CFrame` / `BasePart` / `Attachment` tracking.
+- Target velocity prediction (`Linear`, `Angular`, `LinearAngular`).
+- Continuous attack interval management (`HitResetInterval`).
+- Deterministic event dispatches (`OnHit`, `OnStart`, `OnStop`).
+- Adaptive object pooling (`Pool.luau`).
+- Infrastructure timing (`Timer`) and coroutine synchronization (`Await`).
+
+### Axiom IS NOT Responsible For:
+- Damage formulas or combat rules.
+- Stun, poise, posture, or stamina systems.
+- Visual FX, animations, or audio handlers.
+- UI or camera controllers.
+
+---
+
+## 2. Code Style & `--!strict` Policy
+
+- **Strict Mode Mandatory**: Every `.luau` module must begin with `--!strict`.
+- **Explicit Type Annotations**: All functions, methods, and signal callbacks must include explicit type annotations.
+- **Explicit `self` Typing**: Method signatures must annotate `self` (`local self: Hitbox = self :: any`) to avoid Luau generic solver errors.
+- **Zero-Allocation Rule**: Do not construct `OverlapParams.new()` inside active detection loops. Mutate `_activeOverlap` in-place.
+- **Fast-Path Lookups**: Check `part.Parent` fast-path before executing `FindFirstAncestorOfClass("Model")`.
+
+---
+
+## 3. Contribution Workflow
+
+1. Fork the repository on GitHub.
+2. Create a feature branch (`git checkout -b feature/my-feature`).
+3. Run the automated unit & performance test suites in Studio (`HitboxTest.luau` and `HitboxPerformanceTest.luau`).
+4. Commit your changes using conventional commit messages (e.g. `feat(hitbox): add attachment tracking`).
+5. Open a Pull Request targeting `main`.
+
+--------------------------------------------------------------------------------
+## Page: Automated Testing Suite (development/testing.md)
+--------------------------------------------------------------------------------
+
+# Automated Testing Suite
+
+Axiom Hitbox includes built-in unit and performance test suites under `src/Axiom/_tests/`.
+
+All PR submissions must pass these automated tests without regressions.
+
+---
+
+## 1. Unit Tests (`HitboxTest.luau`)
+
+Validates correctness across all core framework features:
+
+- **State Machine Transitions**: Validates `Idle -> Active -> Stopped` transitions and fixes for `Stopped -> Active` / `Cooldown -> Active` restarts.
+- **Sphere Spatial Queries**: Tests `GetPartBoundsInRadius` query resolution.
+- **HitResetInterval Mechanics**: Verifies continuous attack hit memory clearing.
+- **Attachment & CFrame Tracking**: Verifies dynamic matrix resolution.
+- **Vector3 Position Resolution**: Verifies raw coordinate handling.
+- **Pool Recycling**: Verifies instance cleanup and re-acquisition sanity.
+
+### Execution
+Run `HitboxTest.luau` in Roblox Studio (Server Command Bar or TestService).
+
+---
+
+## 2. Performance & Benchmark Suite (`HitboxPerformanceTest.luau`)
+
+Validates framework throughput under high load:
+
+- **Hot-Path Memory Allocation**: Measures heap allocation rate per `:Start()` cycle (verifying zero GC pressure).
+- **Spatial Query Latency**: Measures CPU execution duration for 50+ concurrent active hitboxes.
+- **$O(1)$ Pool Throughput**: Verifies constant-time acquire/release throughput across thousands of cycles.
+
+### Execution
+Run `HitboxPerformanceTest.luau` in Roblox Studio. Results will print benchmark latency metrics to the Output window.
+
+--------------------------------------------------------------------------------
+## Page: Changelog (development/changelog.md)
+--------------------------------------------------------------------------------
+
+# Release Changelog
+
+All notable changes to the Axiom Hitbox Framework are documented here.
+
+Versioning follows [Semantic Versioning](https://semver.org/).
+
+---
+
+## v1.4.0 (2026-08-05)
+
+### Added
+- Introduced `Shape` property (`"Box"` | `"Sphere"`) for radial spatial queries (`GetPartBoundsInRadius`).
+- Introduced `Radius` property for spherical hitboxes.
+- Introduced `HitResetInterval` property for continuous/channeling attack hit memory resets.
+- Attachment support in `Hitbox.CFrame` / `Hitbox:SetCFrame()` (`attachment.WorldCFrame`).
+- Automated unit test suite (`src/Axiom/_tests/HitboxTest.luau`).
+
+### Improved
+- **Zero-Allocation OverlapParams**: Reused and mutated internal `_activeOverlap` in-place per `:Start()`, reducing memory allocation rate by ~95%.
+- **Fast-Path Ancestry Lookup**: `part.Parent` fast-check before ancestor traversal in `_update()`, reducing CPU time by 30-50% on multi-part models.
+- **$O(1)$ Pool Tracking**: Upgraded `HitboxPool` to use integer `_inUseCount` counter instead of hash table iterations.
+- **Visualizer Part Pooling**: Visualizer Part is now kept pooled on Hitbox instances instead of constant `Instance.new`/`:Destroy()` churn.
+- **Scheduler Lag Drain**: `TimerScheduler` uses capped `while` loop to drain accumulated lag delta without timer drift.
+
+### Fixed
+- **[CRITICAL]** Fixed State Machine transition bug preventing `Stopped -> Active` and `Cooldown -> Active` restarts.
+- **[CRITICAL]** Fixed unhandled exception crash in `OnHit` signal dispatch by wrapping with `FireSafe`.
+- Fixed `CharacterService` `WaitForChild` hanging risk on custom/non-humanoid rigs with 5s timeout.
+- Fixed `CharacterService` getter race conditions during rapid character respawns.
+
+---
+
+## v1.3.0 (2026-01-04)
+
+### Added
+- Full `--!strict` typing across Hitbox & Core.
+- New Hitbox State API: `GetState()`, `Is()`, `IsActive()`.
+- `PredictionMethod` property: `"Linear"` | `"Angular"` | `"LinearAngular"`.
+- BasePart support for `Hitbox.CFrame` (Dynamic tracking).
+- Axiom Core Await expansion: Concurrency primitives (`Mutex`, `Semaphore`), Functional utilities (`Retry`, `Debounce`, `Throttle`, `Queue`).
+
+---
+
+## v1.2.0 (2025-12-21)
+
+### Added
+- Introduced `Axiom` folder namespace for shared infrastructure modules.
+- Formalized Core primitives (Signal, Timer, StateMachine) as internal dependencies.
+
+---
+
+## v1.1.0 (2025-12-21)
+
+### Added
+- Introduced `Timer` and `TimerScheduler` modules.
+- Added `Visualizer` flag for hitbox debug visualization.
+
+---
+
+## v1.0.0 (2025-12-20)
+
+- Initial public release of Axiom Hitbox Framework.
+- Core Hitbox lifecycle (`Start` / `Stop` / `Destroy`).
+- Adaptive object pooling and deterministic spatial queries.
+
+# SECTION: Reference
+
+--------------------------------------------------------------------------------
+## Page: AI Documentation Layer (reference/ai-docs.md)
+--------------------------------------------------------------------------------
+
+# AI Documentation Layer
+
+Axiom Hitbox Framework provides static, AI-readable documentation files designed to enable AI coding assistants (such as **Claude Code**, **Cursor**, **Gemini CLI**, **Codex**, and **GitHub Copilot**) to accurately understand and write code using Axiom without having to crawl the repository.
+
+---
+
+## Available AI Documentation
+
+| Document | Description | Direct Link |
+| :--- | :--- | :--- |
+| **`ai.txt`** | Curated AI technical specification with explicit signatures, strict rules, and Luau examples | <a href="/ai.txt" target="_blank">Raw `/ai.txt`</a> |
+| **`llms.txt`** | Standardized documentation index listing main topics and section links | <a href="/llms.txt" target="_blank">Raw `/llms.txt`</a> |
+| **`llms-full.txt`** | Full concatenated plain-text representation of all public documentation | <a href="/llms-full.txt" target="_blank">Raw `/llms-full.txt`</a> |
+
+---
+
+## How to Use with AI Tools
+
+### Cursor
+Add the curated AI guide directly to your Cursor documentation context:
+1. Open **Cursor Settings** > **Features** > **Docs**.
+2. Add custom documentation URL: `https://zAxn1e.github.io/axiom-hitbox/ai.txt`
+3. Use `@ai.txt` in Cursor Chat when asking Axiom questions.
+
+### Claude Code / Gemini CLI / Terminal Assistants
+Direct your terminal AI assistant to read `llms.txt` or `ai.txt` before generating code:
+```bash
+# Example prompting Claude Code or Gemini CLI:
+"Read https://zAxn1e.github.io/axiom-hitbox/ai.txt and create a server script for a 3-hit melee combo."
+```
+
+### Prompt Engineering / Custom Instructions
+Include the direct raw URL of `ai.txt` in your project's `.cursorrules`, `SYSTEM_PROMPT`, or Copilot instructions:
+```text
+Refer to Axiom Hitbox Framework API reference at:
+https://zAxn1e.github.io/axiom-hitbox/ai.txt
+```
+
+---
+
+## Automation & Synchronization
+
+These AI documentation files are automatically generated during `bun run docs:build` using `scripts/generate-ai-docs.ts`. They remain 100% synchronized with the main VitePress documentation site.
+
+--------------------------------------------------------------------------------
+## Page: FAQ (reference/faq.md)
+--------------------------------------------------------------------------------
+
+# Frequently Asked Questions (FAQ)
+
+### Q: Why is Axiom designed for server-only combat detection?
+**A:** In online multiplayer games, client-side hit detection is vulnerable to exploiters sending fake hit packets or spoofing positions. Running spatial queries on the server guarantees security and determinism.
+
+### Q: Can I run Axiom Hitbox on the client for prediction or visuals?
+**A:** Yes! You can run a `Hitbox` on the client for visual feedback or client-side prediction previewing. However, damage application must always take place on the server.
+
+### Q: Does Axiom replace Raycast Hitbox?
+**A:** Axiom Hitbox provides high-performance volume-based spatial detection (`GetPartBoundsInBox` and `GetPartBoundsInRadius`) with dynamic CFrame tracking, prediction, zero allocations, and $O(1)$ pooling. It is designed as lightweight infrastructure for fast combat systems.
+
+### Q: Do I need to create pools manually?
+**A:** No. `Hitbox.new()` automatically manages instances through an internal adaptive pool. Simply call `hb:Destroy()` when finished.
+
+### Q: How do I handle continuous tick damage (e.g. flamethrowers)?
+**A:** Set `hb.HitResetInterval` to the desired tick interval (e.g. `0.2` seconds). Axiom will reset hit memory automatically every `0.2` seconds while active.
+
+--------------------------------------------------------------------------------
+## Page: Troubleshooting (reference/troubleshooting.md)
+--------------------------------------------------------------------------------
+
+# Troubleshooting & Error Resolution
+
+This guide addresses common error messages, edge cases, and runtime resolution steps.
+
+---
+
+## Common Issues & Fixes
+
+### 1. `Attempt to use Hitbox after Destroy()`
+- **Cause**: Code attempted to call `:Start()` or configure properties on a `Hitbox` instance after calling `:Destroy()`.
+- **Fix**: Once `hb:Destroy()` is called, discard the reference. Acquire a new instance via `Hitbox.new()`.
+
+---
+
+### 2. `OnHit` callback is not firing
+- **Checklist**:
+  1. Is the target `Model` equipped with a valid `Humanoid`? (`OnHit` filters for models containing humanoids).
+  2. Is the attacker's character listed in `hb.Ignore`? (If `Ignore` contains all target models, no hits will register).
+  3. Is `hb.Duration` set too short (e.g. `0.001` seconds)?
+  4. Is `hb.CFrame` positioned correctly? Enable `hb.Visualizer = true` in Studio to verify physical alignment.
+
+---
+
+### 3. Target is hit multiple times unexpectedly
+- **Cause**: Multiple hitboxes active simultaneously or `HitResetInterval` set too low.
+- **Fix**: Check `hb.HitResetInterval`. If you only want a single hit per activation, leave `HitResetInterval = nil`.
+
+---
+
+### 4. `CharacterService` getter yields indefinitely
+- **Cause**: Player character is taking longer than 5s to load, or custom rig lacks `HumanoidRootPart` or `Humanoid`.
+- **Fix**: Ensure player rig contains standard `HumanoidRootPart` and `Humanoid` instances.
+
+--------------------------------------------------------------------------------
+## Page: License (reference/license.md)
+--------------------------------------------------------------------------------
+
+# License
+
+Axiom Hitbox Framework is open-source software licensed under the **MIT License**.
+
+---
+
+## MIT License
+
+Copyright (c) 2025-2026 Iv_0x
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

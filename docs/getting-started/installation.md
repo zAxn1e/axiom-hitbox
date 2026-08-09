@@ -37,27 +37,27 @@ Once installed, your `ReplicatedStorage` hierarchy will reflect the following st
 
 ```text
 ReplicatedStorage
-└── Axiom
-    ├── Hitbox.luau             <-- Main public API
-    ├── Core/
-    │   ├── Signal.luau         <-- Event dispatch
-    │   ├── Timer.luau          <-- Temporal primitive
-    │   ├── Scheduler.luau      <-- Shared timer loop
-    │   ├── Types.luau          <-- Type definitions
-    │   ├── Await/              <-- Coroutine synchronization
-    │   └── Concurrency/        <-- Mutex / Semaphore
-    ├── Service/
-    │   └── CharacterService.luau <-- LocalPlayer character helper
-    └── _docs/                  <-- Embedded metadata & license
++-- Axiom
+    +-- Hitbox.luau             <-- Main public API
+    +-- Core/
+    |   +-- Signal.luau         <-- Event dispatch
+    |   +-- Timer.luau          <-- Temporal primitive
+    |   +-- Scheduler.luau      <-- Shared timer loop
+    |   +-- Types.luau          <-- Type definitions
+    |   +-- Await/              <-- Coroutine synchronization
+    |   +-- Concurrency/        <-- Mutex / Semaphore
+    +-- Service/
+    |   +-- CharacterService.luau <-- LocalPlayer character helper
+    +-- _docs/                  <-- Embedded metadata & license
 ```
 
 ---
 
-## ⛔ Unsupported Usage Patterns
+## Unsupported Usage Patterns
 
 To ensure server stability and performance, avoid the following anti-patterns:
 
-- ❌ Importing `/src` files directly into Studio without Rojo setup.
-- ❌ Manually copying individual files out of `Axiom.Core`.
-- ❌ Running Rojo live-syncing output as a production game framework.
-- ❌ Modifying internal tables (such as `hb._hit` or `hb._humCache`).
+- [X] Importing `/src` files directly into Studio without Rojo setup.
+- [X] Manually copying individual files out of `Axiom.Core`.
+- [X] Running Rojo live-syncing output as a production game framework.
+- [X] Modifying internal tables (such as `hb._hit` or `hb._humCache`).
