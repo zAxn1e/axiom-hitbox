@@ -26,6 +26,7 @@ export default withMermaid(
       ['meta', { name: 'theme-color', content: '#10b981' }],
       ['meta', { name: 'author', content: 'Iv_0x' }],
       ['meta', { name: 'keywords', content: 'Roblox, Luau, Hitbox, Combat System, Spatial Query, Server-Authoritative, Game Development, Roblox Studio' }],
+      ['meta', { name: 'google-site-verification', content: 'googlec8ceadd962aff159' }],
       ['link', { rel: 'alternate', type: 'text/plain', title: 'AI Documentation Specification', href: `${base}ai.txt` }],
       ['link', { rel: 'alternate', type: 'text/plain', title: 'LLMs Context Index', href: `${base}llms.txt` }]
     ],
