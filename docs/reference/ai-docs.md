@@ -9,7 +9,6 @@ Axiom Hitbox Framework provides static, AI-readable documentation files designed
 | Document | Description | Direct Link |
 | :--- | :--- | :--- |
 | **`ai.txt`** | Curated AI technical specification with explicit signatures, strict rules, and Luau examples | [Raw `/ai.txt`](/ai.txt) |
-| **`ai.md`** | Curated AI technical specification in markdown format | [Raw `/ai.md`](/ai.md) |
 | **`llms.txt`** | Standardized documentation index listing main topics and section links | [Raw `/llms.txt`](/llms.txt) |
 | **`llms-full.txt`** | Full concatenated plain-text representation of all public documentation | [Raw `/llms-full.txt`](/llms-full.txt) |
 

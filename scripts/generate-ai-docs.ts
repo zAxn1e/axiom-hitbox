@@ -458,22 +458,23 @@ function main() {
   fs.writeFileSync(llmsTxtPath, llmsTxtContent, 'utf8');
   console.log(`  ✓ Generated: ${path.relative(ROOT_DIR, llmsTxtPath)} (${llmsTxtContent.length} bytes)`);
 
-  // 2. Generate ai.txt and ai.md in docs/public/ as raw static files
+  // 2. Generate ai.txt in docs/public/ as raw static file
   const aiMdContent = generateAiMd();
   const aiTxtPath = path.join(PUBLIC_DIR, 'ai.txt');
   const aiMdPublicPath = path.join(PUBLIC_DIR, 'ai.md');
   const aiMdDocsPath = path.join(DOCS_DIR, 'ai.md');
 
-  // Delete docs/ai.md if it exists so VitePress doesn't attempt page compilation
+  // Delete any ai.md files completely
   if (fs.existsSync(aiMdDocsPath)) {
     fs.unlinkSync(aiMdDocsPath);
   }
+  if (fs.existsSync(aiMdPublicPath)) {
+    fs.unlinkSync(aiMdPublicPath);
+  }
 
-  // Write raw files for AI assistants & direct static view
+  // Write raw ai.txt for AI assistants & direct static view
   fs.writeFileSync(aiTxtPath, aiMdContent, 'utf8');
-  fs.writeFileSync(aiMdPublicPath, aiMdContent, 'utf8');
   console.log(`  ✓ Generated raw AI doc: ${path.relative(ROOT_DIR, aiTxtPath)} (${aiMdContent.length} bytes)`);
-  console.log(`  ✓ Generated raw AI doc: ${path.relative(ROOT_DIR, aiMdPublicPath)} (${aiMdContent.length} bytes)`);
 
   // 3. Generate llms-full.txt
   const llmsFullTxtContent = generateLlmsFullTxt();
@@ -486,8 +487,10 @@ function main() {
   if (fs.existsSync(distDir)) {
     fs.writeFileSync(path.join(distDir, 'llms.txt'), llmsTxtContent, 'utf8');
     fs.writeFileSync(path.join(distDir, 'ai.txt'), aiMdContent, 'utf8');
-    fs.writeFileSync(path.join(distDir, 'ai.md'), aiMdContent, 'utf8');
     fs.writeFileSync(path.join(distDir, 'llms-full.txt'), llmsFullTxtContent, 'utf8');
+    if (fs.existsSync(path.join(distDir, 'ai.md'))) {
+      fs.unlinkSync(path.join(distDir, 'ai.md'));
+    }
     console.log(`  ✓ Synced AI doc files directly to ${path.relative(ROOT_DIR, distDir)}`);
   }
 

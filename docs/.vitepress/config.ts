@@ -38,7 +38,6 @@ export default withMermaid(
           items: [
             { text: 'Overview & Usage', link: '/reference/ai-docs' },
             { text: 'ai.txt (Curated Spec)', link: `${base}ai.txt`, target: '_blank' },
-            { text: 'ai.md (Raw Spec)', link: `${base}ai.md`, target: '_blank' },
             { text: 'llms.txt (Index)', link: `${base}llms.txt`, target: '_blank' },
             { text: 'llms-full.txt (Full Text)', link: `${base}llms-full.txt`, target: '_blank' }
           ]
@@ -105,7 +104,6 @@ export default withMermaid(
           items: [
             { text: 'AI Documentation Overview', link: '/reference/ai-docs' },
             { text: 'ai.txt (Curated Spec)', link: `${base}ai.txt`, target: '_blank' },
-            { text: 'ai.md (Raw Spec)', link: `${base}ai.md`, target: '_blank' },
             { text: 'FAQ', link: '/reference/faq' },
             { text: 'Troubleshooting', link: '/reference/troubleshooting' },
             { text: 'License', link: '/reference/license' }
